@@ -6,12 +6,15 @@ import { Emergence } from "./scenes/Emergence";
 import { FullLogo } from "./scenes/FullLogo";
 import { Icons } from "./scenes/Icons";
 import { Palette } from "./scenes/Palette";
+import { Reel, REEL_FRAMES } from "./reel/Reel";
 
 // 24fps, 1920x1080. BrandFilm = 39s of scenes minus 5 x 18-frame crossfades.
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition id="BrandFilm" component={BrandFilm} durationInFrames={846} fps={24} width={1920} height={1080} />
+      {/* Vertical 9:16 reel, 30fps, cut to the reference edit's timing. */}
+      <Composition id="Reel" component={Reel} durationInFrames={REEL_FRAMES} fps={30} width={1080} height={1920} />
       <Folder name="Scenes">
         <Composition id="Emergence" component={Emergence} durationInFrames={336} fps={24} width={1920} height={1080} />
         <Composition id="Construction" component={Construction} durationInFrames={144} fps={24} width={1920} height={1080} />
