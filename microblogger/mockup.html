@@ -357,6 +357,17 @@ tr.click:hover td{background:#fdf9ef}
 .pf-sheet img{height:84px!important}
 .pf{height:680px}
 .slotrow{flex-wrap:wrap}.slotrow select.inp{width:122px}
+
+.slotrow{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr)) 34px;gap:10px;align-items:center;margin-bottom:10px}
+.slotrow .inp{width:100%!important}
+.slothead{margin-bottom:6px}.slothead span{font-size:12px;color:var(--mute);font-weight:500}
+.slotfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px}
+.slottotal{background:var(--gold-bg);border:1px solid #f1e3b8;border-radius:99px;padding:7px 15px;font-size:13.5px}
+.slotlist{display:grid;gap:6px;margin-top:12px}
+.slotlist .sl{display:flex;align-items:center;gap:12px;background:#fbf5e6;border-radius:12px;padding:8px 12px;font-size:13px}
+.slotlist .sl span{display:flex;gap:5px;align-items:center}.slotlist .sl b{margin-left:auto;color:var(--gold-dd)}
+.slotlist .sl.off{opacity:.55}.slotlist .sl.off b{color:#9b3526}
+@media (max-width:640px){.slotrow{grid-template-columns:1fr 1fr 34px}.slotrow[style*="--n:4"]>:first-child{grid-column:1/-1}.slothead{display:none}}
 </style>
 </head>
 <body>
@@ -452,13 +463,13 @@ const linkOf=b=>b.access?LINK_BASE+b.access.token:'';
 const taken=cid=>DB.reservations.filter(r=>r.campaignId===cid&&r.status!=='Cancelled').length;
 const isOpen=c=>c&&c.type==='open';
 const remaining=c=>isOpen(c)?Infinity:Math.max(0,c.capacity-taken(c.id));
-const cEndDate=c=>isOpen(c)?c.endDate:c.date;
+const cEndDate=c=>isOpen(c)?c.endDate:(c.endDate||c.date);
 const campEnded=c=>at(cEndDate(c),c.end)<new Date();
-const cDateLabel=c=>isOpen(c)?`${fmtD(c.startDate)} – ${fmtD(c.endDate)}`:fmtD(c.date);
-const cTimeLabel=c=>isOpen(c)?slotsOf(c).map(slotLabel).join(' · '):`${fmtT(c.start)} – ${fmtT(c.end)}`;
+const cDateLabel=c=>isOpen(c)?`${fmtD(c.startDate)} – ${fmtD(c.endDate)}`:(c.endDate&&c.endDate!==c.date?`${fmtD(c.date)} – ${fmtD(c.endDate)}`:fmtD(c.date));
+const cTimeLabel=c=>isOpen(c)?slotsOf(c).map(slotLabel).join(' · '):(slotsOf(c).length>1?`${slotsOf(c).length} time slots`:`${fmtT(c.start)} – ${fmtT(c.end)}`);
 function cRestName(c){if(!isOpen(c))return rs(c.restaurantId)?.name||'';const act=DB.restaurants.filter(r=>r.active).length;return c.restaurantIds.length>=act?'All restaurants':`${c.restaurantIds.length} restaurants`}
 const cThumb=c=>isOpen(c)?MNH_MARK:restThumb(rs(c.restaurantId));
-function rInfo(r){const c=cp(r.campaignId);if(isOpen(c))return{c,rest:rs(r.restaurantId),date:r.date,start:r.time,end:r.slotEnd||null};return{c,rest:rs(c.restaurantId),date:c.date,start:c.start,end:c.end}}
+function rInfo(r){const c=cp(r.campaignId);if(isOpen(c)||r.date)return{c,rest:rs(r.restaurantId||c.restaurantId),date:r.date,start:r.time,end:r.slotEnd||null};return{c,rest:rs(c.restaurantId),date:c.date,start:c.start,end:c.end}}
 const tLabel=i=>i.end?`${fmtT(i.start)} – ${fmtT(i.end)}`:`Arrival ${fmtT(i.start)}`;
 function resPast(r){const i=rInfo(r);const e=i.end?at(i.date,i.end):new Date(at(i.date,i.start).getTime()+2*3600e3);return e<new Date()}
 const resStarted=r=>{const i=rInfo(r);return at(i.date,i.start)<=new Date()};
@@ -466,7 +477,8 @@ const monthKey=d=>d.slice(0,7);
 const monthName=d=>parseD(d).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 const usedInMonth=(c,bid,d)=>DB.reservations.filter(r=>r.campaignId===c.id&&r.bloggerId===bid&&r.status!=='Cancelled'&&monthKey(r.date)===monthKey(d)).length;
 const dayCount=(c,rid,d,t)=>DB.reservations.filter(r=>r.campaignId===c.id&&r.restaurantId===rid&&r.date===d&&(!t||r.time===t)&&r.status!=='Cancelled').length;
-const slotsOf=c=>(c.slots&&c.slots.length)?c.slots:[{start:c.start,end:c.end}];
+const slotsOf=c=>(c.slots&&c.slots.length)?c.slots:(isOpen(c)?[{start:c.start,end:c.end}]:[{date:c.date,start:c.start,end:c.end,cap:c.capacity}]);
+const slotLeft=(c,sl)=>sl.cap-DB.reservations.filter(r=>r.campaignId===c.id&&r.status!=='Cancelled'&&(r.date||c.date)===sl.date&&(r.time||c.start)===sl.start).length;
 const slotLabel=sl=>`${fmtT(sl.start)} – ${fmtT(sl.end)}`;
 function cStatus(c){if(['Active','Paused','Closed'].includes(c.status)&&campEnded(c))return 'Completed';return c.status}
 const invitesOf=cid=>DB.invitations.filter(i=>i.campaignId===cid);
@@ -549,11 +561,14 @@ function reserveSpot(cid,bid,o={}){
   if(!DB.invitations.some(i=>i.campaignId===cid&&i.bloggerId===bid)) return {ok:false,msg:'You were not invited to this campaign.'};
   if(isOpen(c)) return reserveOpen(c,b,o);
   if(DB.reservations.some(r=>r.campaignId===cid&&r.bloggerId===bid&&r.status!=='Cancelled')) return {ok:false,msg:'You already have a reservation for this invitation.'};
-  if(taken(cid)>=c.capacity) return {ok:false,msg:'Sorry, the last spot was just taken. This invitation is fully booked.',full:true};
-  const r={id:uid('res'),ref:genRef(),campaignId:cid,bloggerId:bid,status:'Confirmed',attendance:'Not marked',bookedAt:Date.now(),cancelledAt:null,cancelledBy:null,notes:''};
+  const sls=slotsOf(c);const sl=sls[o&&o.slotIdx!=null&&o.slotIdx!==''?+o.slotIdx:0];
+  if(!sl) return {ok:false,msg:'Please choose one of the time slots.'};
+  if(at(sl.date,sl.start)<=new Date()) return {ok:false,msg:'That time slot has already started.'};
+  if(slotLeft(c,sl)<=0) return {ok:false,msg:sls.length>1?'Sorry, that time slot is fully booked. Please choose another one.':'Sorry, the last spot was just taken. This invitation is fully booked.',full:true};
+  const r={id:uid('res'),ref:genRef(),campaignId:cid,bloggerId:bid,restaurantId:c.restaurantId,date:sl.date,time:sl.start,slotEnd:sl.end,status:'Confirmed',attendance:'Not marked',bookedAt:Date.now(),cancelledAt:null,cancelledBy:null,notes:''};
   DB.reservations.push(r);
   const rest=rs(c.restaurantId);
-  notify(bid,'Booking confirmation',`Hi ${first(b.name)}, your visit to ${rest.name} on ${fmtD(c.date)}, ${fmtT(c.start)} – ${fmtT(c.end)} is confirmed. Reference: ${r.ref}`);
+  notify(bid,'Booking confirmation',`Hi ${first(b.name)}, your visit to ${rest.name} on ${fmtD(sl.date)}, ${slotLabel(sl)} is confirmed. Reference: ${r.ref}`);
   save();
   return {ok:true,res:r};
 }
@@ -864,7 +879,7 @@ function pgJourney(){
   const oldP=S.portal;S.portal=Object.assign({},oldP,{bloggerId:b.id});
   const day=addDays(1);const dmin=open?(day>c.startDate?day:c.startDate):c.date;
   const sl=open?slotsOf(c)[0]:null;
-  const tmp={id:'res_journey_tmp',ref:'RSV-7K3M9Q',campaignId:c.id,bloggerId:b.id,status:'Confirmed',attendance:'Not marked',bookedAt:Date.now(),cancelledAt:null,cancelledBy:null,notes:'',...(open?{restaurantId:c.restaurantIds[0],date:dmin,time:sl.start,slotEnd:sl.end}:{})};
+  const tmp={id:'res_journey_tmp',ref:'RSV-7K3M9Q',campaignId:c.id,bloggerId:b.id,status:'Confirmed',attendance:'Not marked',bookedAt:Date.now(),cancelledAt:null,cancelledBy:null,notes:'',...(open?{restaurantId:c.restaurantIds[0],date:dmin,time:sl.start,slotEnd:sl.end}:{restaurantId:c.restaurantId,date:slotsOf(c)[0].date,time:slotsOf(c)[0].start,slotEnd:slotsOf(c)[0].end})};
   let steps=[];
   try{
     const first1=esc(first(b.name));
@@ -887,7 +902,7 @@ function pgJourney(){
     }
   }finally{DB.reservations=DB.reservations.filter(r=>r.id!==tmp.id);S.portal=oldP}
   const rules=open?[`Up to <b>${c.perMonth}</b> visits per blogger each calendar month`,`Dates between <b>${fmtD(c.startDate)}</b> and <b>${fmtD(c.endDate)}</b>, from tomorrow`,`<b>${slotsOf(c).length}</b> time slots: ${slotsOf(c).map(slotLabel).join(', ')}`,`Tables per restaurant: ${slotsOf(c).map(x=>`${slotLabel(x)} <b>${x.cap||'no limit'}</b>`).join(' · ')}`,`Same restaurant cannot be booked twice on the same day`]
-    :[`<b>${c.capacity}</b> spots in total, one booking per blogger`,`When the last spot goes, everyone else sees <b>FULLY BOOKED</b>`,`If the campaign is paused or closed, the button is disabled`,`Cancelling gives the spot back instantly`];
+    :[`<b>${c.capacity}</b> tables in total across <b>${slotsOf(c).length}</b> time slot${slotsOf(c).length>1?'s':''}, one booking per blogger`,`When the last spot goes, everyone else sees <b>FULLY BOOKED</b>`,`If the campaign is paused or closed, the button is disabled`,`Cancelling gives the spot back instantly`];
   const more=[`Cancel allowed until <b>${c.cancelHours} hours</b> before the visit`,...(offerLines(c).length?[`Included: ${offerLines(c).filter(l=>!l.startsWith('Choose')&&!l.startsWith('Up to')).map(esc).join(' · ')||'nothing specified'}`]:['No extras specified (guests, budget or set menu)'])];
   return `${tabs}
   <div class="card" style="padding:14px 18px;margin-bottom:18px"><div class="toolbar" style="margin:0">
@@ -950,7 +965,7 @@ function pgCampaign(c){
   }
   return `<div class="card card-b" style="margin-bottom:16px"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between">
    <div class="camp-hero"><img src="${cThumb(c)}" alt=""><div><div style="display:flex;gap:10px;align-items:center"><span class="b" style="font-size:16px">${esc(cRestName(c))}</span>${op?'<span class="chip" style="background:var(--gold-bg);color:var(--gold-dd)">Open invitation</span>':''}${pill(st)}</div>
-   <div class="muted" style="margin-top:3px">${op?`${cDateLabel(c)} · ${slotsOf(c).length} time slot${slotsOf(c).length>1?'s':''} · Up to ${c.perMonth} visits per blogger per month`:`${fmtDL(c.date)} · ${fmtT(c.start)} – ${fmtT(c.end)} · ${esc(r.location)}`}</div></div></div>
+   <div class="muted" style="margin-top:3px">${op?`${cDateLabel(c)} · ${slotsOf(c).length} time slot${slotsOf(c).length>1?'s':''} · Up to ${c.perMonth} visits per blogger per month`:`${cDateLabel(c)} · ${slotsOf(c).length} time slot${slotsOf(c).length>1?'s':''} · ${esc(r.location)}`}</div></div></div>
    <div class="btns">${acts.join('')}</div></div></div>
   ${st==='Paused'||st==='Closed'?`<div class="notice" style="margin-bottom:16px">${ic('info',16)}<div>This campaign is <b>${st.toLowerCase()}</b>. Bloggers can still see it but cannot make new bookings.</div></div>`:''}
   ${op?`<div class="stats">
@@ -960,7 +975,7 @@ function pgCampaign(c){
    <div class="card stat"><div class="l">Per slot limit</div><div class="v">${slotsOf(c).map(x=>x.cap||'∞').join(' · ')}</div><div class="s">Tables per restaurant, per slot</div></div>
    <div class="card stat"><div class="l">Invited</div><div class="v">${inv.length}</div><div class="s">${delivered} delivered (simulated)</div></div>
   </div>`:`<div class="stats">
-   <div class="card stat"><div class="l">Total spots</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px"><div class="v" style="margin:0">${c.capacity}</div>${canEditCap?`<div class="cap-ctl"><button data-action="cap" data-d="-1" data-id="${c.id}" title="Decrease">${ic('minus',14)}</button><button data-action="cap" data-d="1" data-id="${c.id}" title="Increase">${ic('plus',14)}</button></div>`:''}</div><div class="s">Capacity</div></div>
+   <div class="card stat"><div class="l">Total tables</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px"><div class="v" style="margin:0">${c.capacity}</div></div><div class="s">Capacity</div></div>
    <div class="card stat"><div class="l">Confirmed bookings</div><div class="v">${res.filter(x=>x.status==='Confirmed').length}</div><div class="s">${res.filter(x=>x.status==='Completed').length} completed · ${res.filter(x=>x.status==='No-show').length} no-show</div></div>
    <div class="card stat"><div class="l">Remaining spots</div><div class="v">${rem}</div><div class="s">${rem===0?'Fully booked':'Open'}</div></div>
    <div class="card stat"><div class="l">Invited</div><div class="v">${inv.length}</div><div class="s">${c.inviteLimit?`Limit ${c.inviteLimit}`:'No limit'}</div></div>
@@ -969,7 +984,7 @@ function pgCampaign(c){
   <div class="grid3">
    <div><div class="tabs">${[['inv','Invited bloggers'],['book','Bookings'],...(op?[['rest','By restaurant']]:[]),['msg','Message']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-action="ctab" data-t="${k}">${l}</button>`).join('')}</div>${tabBody}</div>
    <div class="card" style="align-self:start"><div class="card-h"><h3>Details</h3></div><div class="card-b"><dl class="kv">
-    <dt>Campaign</dt><dd>${esc(c.name)}</dd>${op?`<dt>Type</dt><dd>Open invitation</dd><dt>Restaurants</dt><dd>${c.restaurantIds.map(id=>esc(rs(id)?.name)).join(', ')}</dd><dt>Period</dt><dd>${cDateLabel(c)}</dd><dt>Time slots</dt><dd>${slotsOf(c).map(slotLabel).join('<br>')}</dd><dt>Per blogger</dt><dd>Max ${c.perMonth} visits per month</dd><dt>Per slot limit</dt><dd>${c.dailyCap?c.dailyCap+' bloggers per restaurant':'No limit'}</dd>`:`<dt>Restaurant</dt><dd>${esc(r.name)}</dd><dt>Visit date</dt><dd>${fmtD(c.date)}</dd><dt>Time</dt><dd>${fmtT(c.start)} – ${fmtT(c.end)}</dd>`}
+    <dt>Campaign</dt><dd>${esc(c.name)}</dd>${op?`<dt>Type</dt><dd>Open invitation</dd><dt>Restaurants</dt><dd>${c.restaurantIds.map(id=>esc(rs(id)?.name)).join(', ')}</dd><dt>Period</dt><dd>${cDateLabel(c)}</dd><dt>Time slots</dt><dd>${slotsOf(c).map(slotLabel).join('<br>')}</dd><dt>Per blogger</dt><dd>Max ${c.perMonth} visits per month</dd><dt>Tables per slot</dt><dd>${slotsOf(c).map(x=>`${slotLabel(x)}: ${x.cap||'no limit'}`).join('<br>')}</dd>`:`<dt>Restaurant</dt><dd>${esc(r.name)}</dd><dt>Time slots</dt><dd>${slotsOf(c).map(sl=>`${fmtD(sl.date)} · ${slotLabel(sl)}<br><span class="muted small">${sl.cap} tables · ${slotLeft(c,sl)} left</span>`).join('<br>')}</dd>`}
     <dt>Audience</dt><dd>${[c.everyone?'All approved bloggers':'',...c.groupIds.map(g=>esc(DB.groups.find(x=>x.id===g)?.name||'Deleted group'))].filter(Boolean).join(', ')||'—'}</dd>
     <dt>Individuals</dt><dd>${c.manualIds.map(id=>esc(bl(id)?.name)).join(', ')||'—'}</dd>
     <dt>Audience</dt><dd>${aud.length} approved · ${aud.filter(hasAccess).length} with active link</dd>
@@ -1064,31 +1079,24 @@ function campaignForm(id,preType){
   const c=id?cp(id):null;
   const actRest=DB.restaurants.filter(r=>r.active||(c&&(r.id===c.restaurantId||(c.restaurantIds||[]).includes(r.id))));
   const d=c||{type:preType||'single',restaurantIds:DB.restaurants.filter(r=>r.active).map(r=>r.id),startDate:monthRange(0)[0],endDate:monthRange(0)[1],perMonth:2,dailyCap:'',guests:'',budget:null,setMenu:'',name:'',restaurantId:actRest[0]?.id,date:addDays(7),start:'13:00',end:'16:00',capacity:10,inviteLimit:null,everyone:true,groupIds:[],manualIds:[],description:'',instructions:'',message:DB.settings.template,cancelHours:DB.settings.cancelHours};
-  M={slots:(d.slots||[{start:'12:00',end:'14:00',cap:5},{start:'18:00',end:'20:00',cap:5}]).map(x=>({...x})),everyone:!!d.everyone,groupIds:[...d.groupIds],manualIds:[...d.manualIds],mq:'',type:d.type||'single',rids:[...(d.restaurantIds||actRest.map(r=>r.id))]};
+  M={slots:(d.slots||(c?slotsOf(c):[{date:addDays(7),start:'14:00',end:'16:00',cap:5},{date:addDays(7),start:'18:00',end:'20:00',cap:5}])).map(x=>({...x})),everyone:!!d.everyone,groupIds:[...d.groupIds],manualIds:[...d.manualIds],mq:'',type:d.type||'single',rids:[...(d.restaurantIds||actRest.map(r=>r.id))]};
   const T=M.type;
   const launched=c&&c.status!=='Draft';
   openModal({title:c?'Edit campaign':'New campaign',wide:true,body:`<div id="cform" data-type="${T}">
   ${c?`<div class="notice info" style="margin-bottom:14px">${ic('info',16)}<div>Campaign type: <b>${T==='open'?'Open invitation (bloggers choose the restaurant)':'Single restaurant visit'}</b></div></div>`:`<div class="sec-t">Campaign type</div>
-  <div class="typepick"><label><input type="radio" name="f_type" value="single" ${T==='single'?'checked':''}><div><b>Single restaurant visit</b><span>One restaurant, one date and time, a fixed number of spots.</span></div></label>
+  <div class="typepick"><label><input type="radio" name="f_type" value="single" ${T==='single'?'checked':''}><div><b>Single restaurant visit</b><span>One restaurant, one or more dates and time slots, with tables for each.</span></div></label>
   <label><input type="radio" name="f_type" value="open" ${T==='open'?'checked':''}><div><b>Open invitation</b><span>Bloggers choose the restaurant, date and time themselves, with a monthly limit.</span></div></label></div>`}
   <div class="sec-t">Campaign information</div>
   <div class="row"><div class="field"><label>Campaign name</label><input class="inp" id="f_name" value="${esc(d.name)}" placeholder="e.g. Autumn Menu Tasting"></div>
   <div class="field only-single"><label>Restaurant</label><select class="inp" id="f_rest" style="width:100%">${actRest.map(r=>`<option value="${r.id}" ${r.id===d.restaurantId?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div></div>
-  <div class="row only-single"><div class="field"><label>Visit date</label><input class="inp" type="date" id="f_date" value="${d.date||addDays(7)}" min="${iso(TODAY)}"></div>
-  <div class="field"><label>Start time</label><input class="inp" type="time" id="f_start" value="${T==='single'?d.start:'13:00'}"></div>
-  <div class="field"><label>End time</label><input class="inp" type="time" id="f_end" value="${T==='single'?d.end:'16:00'}"></div></div>
   <div class="only-open">
    <div class="field"><label>Restaurants bloggers can choose from <button type="button" class="btn ghost sm" data-action="ridsAll">Select all</button><button type="button" class="btn ghost sm" data-action="ridsNone">Clear</button></label><div id="ridbox">${ridChecks(actRest)}</div></div>
    <div class="row"><div class="field"><label>Available from</label><input class="inp" type="date" id="f_sdate" value="${d.startDate||monthRange(0)[0]}"></div>
    <div class="field"><label>Available until</label><input class="inp" type="date" id="f_edate" value="${d.endDate||monthRange(0)[1]}"></div>
    <div class="field"><label>Quick select</label><div class="btns"><button type="button" class="btn sm" data-action="pickMonth" data-m="0">${monthRange(0)[2]}</button><button type="button" class="btn sm" data-action="pickMonth" data-m="1">${monthRange(1)[2]}</button></div></div></div>
-   <div class="field"><label>Time slots and tables <span class="hint" style="font-weight:400">Pick how many tables each restaurant has for every slot. One table = one blogger.</span></label><div id="slotbox">${slotRows()}</div><button type="button" class="btn sm" data-action="addSlot">${ic('plus',14)} Add time slot</button></div>
   </div>
-  <div class="sec-t" style="margin-top:6px">Capacity &amp; limits</div>
-  <div class="row"><div class="field only-single"><label>Total available spots</label><input class="inp" type="number" min="1" id="f_cap" value="${d.capacity||10}"></div>
-  <div class="field only-open"><label>Max visits per blogger per month</label><input class="inp" type="number" min="1" id="f_permonth" value="${d.perMonth||2}"></div>
-  <div class="field"><label>Number of bloggers to invite</label><input class="inp" type="number" min="1" id="f_limit" value="${d.inviteLimit||''}" placeholder="All in audience"><span class="hint">Leave empty to invite everyone selected</span></div>
-  <div class="field"><label>Cancellation window (hours)</label><input class="inp" type="number" min="0" id="f_hours" value="${d.cancelHours}"><span class="hint">Bloggers can cancel up to this many hours before</span></div></div>
+  <div class="sec-t" style="margin-top:6px">Time slots and tables</div>
+  <div class="field"><div id="slotbox">${slotRows()}</div><div class="slotfoot"><button type="button" class="btn sm" data-action="addSlot">${ic('plus',14)} Add time slot</button><div class="slottotal" id="slotTotal"></div></div></div>
   <div class="sec-t" style="margin-top:6px">What's included <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional, leave empty to skip)</span></div>
   <div class="row"><div class="field"><label>Guests allowed</label><select class="inp" id="f_guests" style="width:100%">${[['','Not specified'],['0','Just the blogger (no guests)'],['1','+1 guest'],['2','+2 guests']].map(([v,l])=>`<option value="${v}" ${String(d.guests??'')===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div class="field"><label>What we provide</label><select class="inp" id="f_otype" style="width:100%">${[['','Nothing specified'],['budget','Table budget'],['menu','Set menu']].map(([v,l])=>`<option value="${v}" ${offerType(d)===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
@@ -1096,6 +1104,10 @@ function campaignForm(id,preType){
    <div class="field ot-budget"><label>Table budget (KD)</label><input class="inp" type="number" min="0" step="0.5" id="f_budget" value="${d.budget??''}" placeholder="e.g. 25" style="max-width:220px"><span class="hint">Max bill value for the table</span></div>
    <div class="field ot-menu"><label>Set menu</label><textarea class="inp" id="f_menu" rows="2" placeholder="e.g. 2 starters, 2 mains and 1 dessert to share">${esc(d.setMenu||'')}</textarea></div>
   </div>
+  <div class="sec-t" style="margin-top:6px">Capacity &amp; limits</div>
+  <div class="row">  <div class="field only-open"><label>Max visits per blogger per month</label><input class="inp" type="number" min="1" id="f_permonth" value="${d.perMonth||2}"></div>
+  <div class="field"><label>Number of bloggers to invite</label><input class="inp" type="number" min="1" id="f_limit" value="${d.inviteLimit||''}" placeholder="All in audience"><span class="hint">Leave empty to invite everyone selected</span></div>
+  <div class="field"><label>Cancellation window (hours)</label><input class="inp" type="number" min="0" id="f_hours" value="${d.cancelHours}"><span class="hint">Bloggers can cancel up to this many hours before</span></div></div>
   <div class="sec-t" style="margin-top:6px">Audience</div>
   <div class="field"><label>Who to invite</label><div><label class="gchk"><input type="checkbox" id="f_everyone" ${M.everyone?'checked':''}> 🌟 All approved bloggers <span class="muted small">${DB.bloggers.filter(b=>b.status==='Approved').length}</span></label>${DB.groups.map(g=>`<label class="gchk"><input type="checkbox" data-gid="${g.id}" ${M.groupIds.includes(g.id)?'checked':''}> ${esc(g.name)} <span class="muted small">${membersOf(g.id).filter(b=>b.status==='Approved').length}</span></label>`).join('')}</div></div>
   <div class="field"><label>Individual bloggers (optional)</label><input class="inp" placeholder="Search approved bloggers…" data-msearch style="margin-bottom:6px"><div class="checklist" id="mlist">${manualList()}</div></div>
@@ -1106,11 +1118,16 @@ function campaignForm(id,preType){
   <div class="field"><label>Invitation message</label><textarea class="inp" id="f_msg" rows="8">${esc(d.message)}</textarea><span class="hint">Placeholders: {name}, {restaurant}, {date}, {time}, {offer}, {link}. {offer} adds the guests, budget and set menu (only the ones you filled in).</span></div></div>`,
   foot:`<button class="btn" data-action="closeModal">Cancel</button>${c?`<button class="btn pri" data-action="saveCampaign" data-id="${c.id}" data-launch="0">Save changes</button>`:`<button class="btn" data-action="saveCampaign" data-launch="0">Save as draft</button><button class="btn pri" data-action="saveCampaign" data-launch="1">${ic('send',15)} Save &amp; launch</button>`}`});
   if(launched)M.launched=true;
-  updateAudience();
+  updateAudience();updateSlotTotal();
 }
 function monthRange(k){const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+k,1);const e=new Date(d.getFullYear(),d.getMonth()+1,0);return [iso(d),iso(e),d.toLocaleDateString('en-GB',{month:'long'})]}
-function slotRows(){return M.slots.map((x,i)=>`<div class="slotrow"><span class="muted small" style="width:52px">Slot ${i+1}</span><input class="inp" type="time" data-ss="${i}" value="${x.start}"><span class="muted">to</span><input class="inp" type="time" data-se="${i}" value="${x.end}"><select class="inp" data-sc="${i}" title="Tables per restaurant for this slot"><option value="">No limit</option>${Array.from({length:20},(_,n)=>`<option value="${n+1}" ${+x.cap===n+1?'selected':''}>${n+1} table${n?'s':''}</option>`).join('')}</select>${M.slots.length>1?`<button type="button" class="btn ghost sm" data-action="rmSlot" data-i="${i}">${ic('x',14)}</button>`:''}</div>`).join('')}
-function syncSlots(){document.querySelectorAll('[data-ss]').forEach(el=>M.slots[el.dataset.ss].start=el.value);document.querySelectorAll('[data-se]').forEach(el=>M.slots[el.dataset.se].end=el.value);document.querySelectorAll('[data-sc]').forEach(el=>M.slots[el.dataset.sc].cap=el.value?+el.value:null)}
+function slotRows(){
+  const sg=M.type==='single';
+  const head=`<div class="slotrow slothead" style="--n:${sg?4:3}">${sg?'<span>Visit date</span>':''}<span>Start time</span><span>End time</span><span>Number of tables</span><span></span></div>`;
+  return head+M.slots.map((x,i)=>`<div class="slotrow" style="--n:${sg?4:3}">${sg?`<input class="inp" type="date" data-sd="${i}" value="${x.date||addDays(7)}" min="${iso(TODAY)}">`:''}<input class="inp" type="time" data-ss="${i}" value="${x.start}"><input class="inp" type="time" data-se="${i}" value="${x.end}"><select class="inp" data-sc="${i}" title="Tables for this time slot">${sg?'':'<option value="">No limit</option>'}${Array.from({length:20},(_,n)=>`<option value="${n+1}" ${+x.cap===n+1?'selected':''}>${n+1} table${n?'s':''}</option>`).join('')}</select>${M.slots.length>1?`<button type="button" class="btn ghost sm" data-action="rmSlot" data-i="${i}" title="Remove slot">${ic('x',14)}</button>`:'<span></span>'}</div>`).join('')}
+function updateSlotTotal(){const el=$('#slotTotal');if(!el)return;syncSlots();const t=M.slots.reduce((a,x)=>a+(+x.cap||0),0);
+  el.innerHTML=M.type==='single'?`🍽️ Total available: <b>${t} table${t===1?'':'s'}</b>`:(M.slots.some(x=>!x.cap)?'🍽️ Some slots have no table limit':`🍽️ <b>${t} table${t===1?'':'s'}</b> per restaurant, per day`)}
+function syncSlots(){document.querySelectorAll('[data-ss]').forEach(el=>M.slots[el.dataset.ss].start=el.value);document.querySelectorAll('[data-se]').forEach(el=>M.slots[el.dataset.se].end=el.value);document.querySelectorAll('[data-sc]').forEach(el=>M.slots[el.dataset.sc].cap=el.value?+el.value:null);document.querySelectorAll('[data-sd]').forEach(el=>M.slots[el.dataset.sd].date=el.value)}
 function ridChecks(list){return (list||DB.restaurants.filter(r=>r.active)).map(r=>`<label class="gchk"><input type="checkbox" data-rid="${r.id}" ${M.rids.includes(r.id)?'checked':''}> ${esc(r.name)}</label>`).join('')}
 function manualList(){
   const q=(M.mq||'').toLowerCase();
@@ -1126,7 +1143,7 @@ function updateAudience(){
 }
 function readCampaignForm(){
   const v=id=>$('#'+id).value;
-  const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:ot==='menu'?v('f_menu').trim():'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?v('f_date'):v('f_sdate'),start:T==='single'?v('f_start'):null,end:T==='single'?v('f_end'):null,capacity:T==='single'?parseInt(v('f_cap')):null,inviteLimit:parseInt(v('f_limit'))||null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
+  const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:ot==='menu'?v('f_menu').trim():'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?null:v('f_sdate'),start:null,end:null,capacity:null,inviteLimit:parseInt(v('f_limit'))||null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
   if(!o.name)return 'Add a campaign name.';
   if(ot==='budget'&&!o.budget)return 'Add the table budget amount, or choose "Nothing specified".';
   if(ot==='menu'&&!o.setMenu)return 'Describe the set menu, or choose "Nothing specified".';
@@ -1140,10 +1157,13 @@ function readCampaignForm(){
     if(!o.startDate||!o.endDate||o.endDate<o.startDate)return 'Check the available from / until dates.';
     if(o.perMonth<1)return 'Visits per month must be at least 1.';
   }else{
-  if(!o.restaurantId)return 'Choose a restaurant.';
-  if(!o.date||!o.start||!o.end)return 'Add the visit date and time.';
-  if(o.end<=o.start)return 'End time must be after the start time.';
-  if(!(o.capacity>=1))return 'Total spots must be at least 1.';
+    if(!o.restaurantId)return 'Choose a restaurant.';
+    syncSlots();const sl=M.slots.filter(x=>x.date&&x.start&&x.end).map(x=>({date:x.date,start:x.start,end:x.end,cap:+x.cap||0})).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+    if(!sl.length)return 'Add at least one visit date and time.';
+    if(sl.some(x=>x.end<=x.start))return 'Each time slot must end after it starts.';
+    if(sl.some(x=>x.cap<1))return 'Choose the number of tables for every time slot.';
+    for(let k=1;k<sl.length;k++)if(sl[k].date===sl[k-1].date&&sl[k].start<sl[k-1].end)return 'Two time slots on the same day overlap. Please adjust them.';
+    const last=sl[sl.length-1];Object.assign(o,{slots:sl,date:sl[0].date,endDate:last.date,start:sl[0].start,end:last.end,capacity:sl.reduce((t,x)=>t+x.cap,0)});
   }
   if(!o.everyone&&!o.groupIds.length&&!o.manualIds.length)return 'Choose who to invite: all approved bloggers, or pick individual bloggers.';
   return o;
@@ -1189,9 +1209,9 @@ function resEditForm(id){
     <div class="field"><label>Internal notes</label><textarea class="inp" id="x_notes">${esc(r.notes)}</textarea></div>`,
     foot:`<button class="btn" data-action="closeModal">Cancel</button><button class="btn pri" data-action="saveRes" data-id="${id}">Save</button>`});return;
   }
-  const opts=DB.campaigns.filter(x=>x.id===c.id||(!isOpen(x)&&['Active','Paused'].includes(cStatus(x))&&remaining(x)>0&&!DB.reservations.some(y=>y.campaignId===x.id&&y.bloggerId===b.id&&y.status!=='Cancelled')));
+  const opts=[];DB.campaigns.filter(x=>!isOpen(x)&&(x.id===c.id||(['Active','Paused'].includes(cStatus(x))&&!DB.reservations.some(y=>y.campaignId===x.id&&y.bloggerId===b.id&&y.status!=='Cancelled')))).forEach(x=>slotsOf(x).forEach((sl,i)=>{const cur=x.id===c.id&&(r.date||c.date)===sl.date&&(r.time||c.start)===sl.start;if(cur||slotLeft(x,sl)>0)opts.push({v:x.id+':'+i,cur,t:`${rs(x.restaurantId).name} · ${x.name} · ${fmtD(sl.date)} ${slotLabel(sl)}${cur?' (current)':` · ${slotLeft(x,sl)} left`}`})}));
   openModal({title:`Change reservation ${r.ref}`,body:`<div class="muted" style="margin-bottom:14px">${esc(b.name)} · @${esc(igOf(b)?.username)}</div>
-  <div class="field"><label>Campaign / visit</label><select class="inp" id="x_c" style="width:100%">${opts.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${esc(rs(x.restaurantId).name)} · ${esc(x.name)} · ${fmtD(x.date)} ${fmtT(x.start)}${x.id===c.id?' (current)':` · ${remaining(x)} left`}</option>`).join('')}</select><span class="hint">Only campaigns with free spots are listed. Moving updates both campaigns' capacity.</span></div>
+  <div class="field"><label>Visit and time slot</label><select class="inp" id="x_c" style="width:100%">${opts.map(x=>`<option value="${x.v}" ${x.cur?'selected':''}>${esc(x.t)}</option>`).join('')}</select><span class="hint">Only time slots with free tables are listed.</span></div>
   <div class="field"><label>Internal notes</label><textarea class="inp" id="x_notes">${esc(r.notes)}</textarea></div>`,
   foot:`<button class="btn" data-action="closeModal">Cancel</button><button class="btn pri" data-action="saveRes" data-id="${id}">Save</button>`});
 }
@@ -1213,12 +1233,12 @@ function groupNameForm(id){
   setTimeout(()=>$('#g_name')?.focus(),30);
 }
 async function stressTest(cid){
-  const c=cp(cid);const rem=remaining(c);
+  const c=cp(cid);const sIdx=Math.max(0,slotsOf(c).findIndex(x=>slotLeft(c,x)>0&&at(x.date,x.start)>new Date()));const rem=slotLeft(c,slotsOf(c)[sIdx]);
   const pool=invitesOf(cid).map(i=>bl(i.bloggerId)).filter(b=>hasAccess(b)&&!DB.reservations.some(r=>r.campaignId===cid&&r.bloggerId===b.id&&r.status!=='Cancelled'));
   const n=Math.min(pool.length,rem+1);
   if(n<2){toast('Not enough invited bloggers without a booking to run this test.');return}
   const contenders=pool.slice(0,n);
-  const results=await Promise.all(contenders.map(b=>new Promise(res=>setTimeout(()=>res({b,r:reserveSpot(cid,b.id)}),Math.random()*40))));
+  const results=await Promise.all(contenders.map(b=>new Promise(res=>setTimeout(()=>res({b,r:reserveSpot(cid,b.id,{slotIdx:sIdx})}),Math.random()*40))));
   render();
   const ok=results.filter(x=>x.r.ok).length;
   openModal({title:'Overbooking test result',body:`<p style="margin-top:0">${n} booking requests arrived at the same moment for <b>${rem}</b> remaining spot${rem>1?'s':''}. <b>${ok}</b> succeeded, <b>${n-ok}</b> ${n-ok===1?'was':'were'} refused. Remaining spots now: <b>${remaining(c)}</b>.</p>
@@ -1379,11 +1399,11 @@ function invCard(c,b){
   else if(st==='Paused'){badge='<span class="badge">Paused</span>';btn='<button class="pbtn" disabled>Bookings paused</button>'}
   else if(st==='Closed'){badge='<span class="badge">Closed</span>';btn='<button class="pbtn" disabled>Bookings closed</button>'}
   else if(rem===0){badge='<span class="badge full">FULLY BOOKED</span>';btn='<button class="pbtn" disabled>Fully booked</button>'}
-  else btn=`<button class="pbtn" data-action="pReserve" data-id="${c.id}">Reserve your spot</button>`;
+  else btn=`<button class="pbtn" data-action="pReserve" data-id="${c.id}">${slotsOf(c).length>1?'Choose a time slot':'Reserve your spot'}</button>`;
   const dots=c.capacity<=20?`<div class="dots">${Array.from({length:c.capacity},(_,i)=>`<i class="${i<t?'':'free'}"></i>`).join('')}</div>`:'';
   return `<div class="icard"><div class="img"><img src="${restImg(r)}" alt="${esc(r.name)}">${badge}</div><div class="bd">
   <div class="rname">${esc(r.name)}</div><div class="cname">${esc(c.name)}</div>
-  <div class="meta"><span>${ic('cal',15)} ${fmtDL(c.date)}</span><span>${ic('clock',15)} ${fmtT(c.start)} – ${fmtT(c.end)}</span><span>${ic('pin',15)} ${esc(r.location)}</span></div>
+  ${slotsOf(c).length>1?`<div class="meta"><span>${ic('pin',15)} ${esc(r.location)}</span></div><div class="slotlist">${slotsOf(c).map(sl=>{const L=slotLeft(c,sl);return `<div class="sl ${L<=0?'off':''}"><span>${ic('cal',14)} ${fmtD(sl.date)}</span><span>${ic('clock',14)} ${slotLabel(sl)}</span><b>${L<=0?'Full':L+' left'}</b></div>`}).join('')}</div>`:`<div class="meta"><span>${ic('cal',15)} ${fmtDL(c.date)}</span><span>${ic('clock',15)} ${fmtT(c.start)} – ${fmtT(c.end)}</span><span>${ic('pin',15)} ${esc(r.location)}</span></div>`}
   ${offerLines(c).length?`<div class="offer">${offerChips(c,'ochip')}</div>`:''}
   ${c.description?`<div class="pdesc">${esc(c.description)}</div>`:''}
   <div class="spots"><span>${rem===0?'<span style="color:#9b3526">FULLY BOOKED</span>':`${rem} of ${c.capacity} spots remaining`}</span>${dots}</div>
@@ -1443,7 +1463,7 @@ function pReserveSheet(cid){
   const c=cp(cid),r=rs(c.restaurantId);
   openModal({sheet:true,title:'Confirm your reservation',body:`<img src="${restImg(r)}" style="width:100%;height:130px;object-fit:cover;border-radius:14px" alt="">
   <div class="rname" style="margin-top:14px">${esc(r.name)}</div><div class="cname">${esc(c.name)}</div>
-  <div class="meta" style="flex-direction:column;gap:8px"><span>${ic('cal',15)} ${fmtDL(c.date)}</span><span>${ic('clock',15)} ${fmtT(c.start)} – ${fmtT(c.end)}</span><span>${ic('pin',15)} ${esc(r.location)}</span></div>
+  ${slotsOf(c).length>1?`<div class="meta"><span>${ic('pin',15)} ${esc(r.location)}</span></div><div class="field" style="margin-top:12px"><label>Choose your time</label><div class="slotpick">${(()=>{let done=false;return slotsOf(c).map((sl,i)=>{const L=slotLeft(c,sl);const off=L<=0||at(sl.date,sl.start)<=new Date();const chk=!off&&!done;if(chk)done=true;return `<label class="${off?'off':''}"><input type="radio" name="s_slot" value="${i}" ${off?'disabled':''} ${chk?'checked':''}>${fmtD(sl.date)} · ${slotLabel(sl)}<small>${at(sl.date,sl.start)<=new Date()?'Passed':L<=0?'Fully booked':L+' spot'+(L>1?'s':'')+' left'}</small></label>`}).join('')})()}</div></div>`:`<div class="meta" style="flex-direction:column;gap:8px"><span>${ic('cal',15)} ${fmtDL(c.date)}</span><span>${ic('clock',15)} ${fmtT(c.start)} – ${fmtT(c.end)}</span><span>${ic('pin',15)} ${esc(r.location)}</span></div>`}
   ${offerLines(c).length?`<div class="pdesc" style="margin-top:14px"><b>Your visit includes</b><ul style="margin:6px 0 0;padding-left:18px">${offerLines(c).map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`:''}
   ${c.instructions?`<div class="pdesc" style="background:#f6f2ec;padding:10px 12px;border-radius:10px;margin-top:14px"><b>Instructions:</b> ${esc(c.instructions)}</div>`:''}
   <div class="muted small" style="margin-top:12px">You can cancel up to ${c.cancelHours} hours before your visit. ${remaining(c)} of ${c.capacity} spots left.</div>
@@ -1525,10 +1545,10 @@ const A={
  reviewPending:()=>{S.bstatus='Pending';S.page='bloggers';render()},
  editCampaign:d=>campaignForm(d.id),
  saveCampaign:d=>{const o=readCampaignForm();if(typeof o==='string')return toast(o);
-   if(d.id){const c=cp(d.id);if(!isOpen(c)&&o.capacity<taken(c.id))return toast(`Capacity can't be lower than the ${taken(c.id)} existing bookings`);
-     const changed=!isOpen(c)&&(c.date!==o.date||c.start!==o.start||c.end!==o.end);const offerChanged=offerLines(c).join('|')!==offerLines(o).join('|');Object.assign(c,o);
+   if(d.id){const c=cp(d.id);if(!isOpen(c)){const live=DB.reservations.filter(r=>r.campaignId===c.id&&r.status!=='Cancelled');const bad=live.find(r=>{const rd=r.date||c.date,rt=r.time||c.start;const sl=o.slots.find(x=>x.date===rd&&x.start===rt);return !sl||live.filter(y=>(y.date||c.date)===rd&&(y.time||c.start)===rt).length>sl.cap});if(bad)return toast('A time slot that already has bookings cannot be removed or given fewer tables than its bookings.')}
+     const changed=!isOpen(c)&&JSON.stringify(slotsOf(c))!==JSON.stringify(o.slots);const offerChanged=offerLines(c).join('|')!==offerLines(o).join('|');Object.assign(c,o);
      if(offerChanged&&!changed)DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed').forEach(r=>{const b=bl(r.bloggerId);const ol=offerLines(c);notify(b.id,'Campaign update',`Hi ${first(b.name)}, an update for your ${rs(c.restaurantId).name} visit: ${ol.length?ol.join(', '):'details updated'}.`)});
-     if(changed)DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed').forEach(r=>{const b=bl(r.bloggerId);notify(b.id,'Campaign update',`Hi ${first(b.name)}, the time of your ${rs(c.restaurantId).name} visit has changed to ${fmtD(c.date)}, ${fmtT(c.start)} – ${fmtT(c.end)}.`)});
+     if(changed)DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed').forEach(r=>{const b=bl(r.bloggerId);notify(b.id,'Campaign update',`Hi ${first(b.name)}, the schedule of your ${rs(c.restaurantId).name} visit has changed. Please check your booking.`)});
      save();closeModal();render();toast('Campaign updated');return}
    const c=Object.assign({id:uid('cmp'),status:'Draft',createdAt:Date.now(),launchedAt:null},o);DB.campaigns.push(c);
    closeModal();S.page='campaign';S.campaignId=c.id;S.ctab='inv';
@@ -1543,8 +1563,8 @@ const A={
      DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed').forEach(r=>cancelReservation(r.id,'Admin'));c.status='Cancelled';save();render();toast('Campaign cancelled')})},
  cap:d=>{const c=cp(d.id);const n=c.capacity+(+d.d);if(n<1)return;if(n<taken(c.id))return toast(`Can't go below ${taken(c.id)} existing bookings`);c.capacity=n;save();render()},
  stress:d=>stressTest(d.id),
- addSlot:()=>{syncSlots();const last=M.slots[M.slots.length-1];const h=last?Math.min(22,parseInt(last.end)+2):12;M.slots.push({start:`${String(h).padStart(2,'0')}:00`,end:`${String(Math.min(23,h+2)).padStart(2,'0')}:00`,cap:last?last.cap:null});$('#slotbox').innerHTML=slotRows()},
- rmSlot:d=>{syncSlots();M.slots.splice(+d.i,1);$('#slotbox').innerHTML=slotRows()},
+ addSlot:()=>{syncSlots();const last=M.slots[M.slots.length-1];const h=last?Math.min(22,parseInt(last.end)+2):12;M.slots.push({date:(last&&last.date)||addDays(7),start:`${String(h).padStart(2,'0')}:00`,end:`${String(Math.min(23,h+2)).padStart(2,'0')}:00`,cap:last?last.cap:null});$('#slotbox').innerHTML=slotRows();updateSlotTotal()},
+ rmSlot:d=>{syncSlots();M.slots.splice(+d.i,1);$('#slotbox').innerHTML=slotRows();updateSlotTotal()},
  pickMonth:d=>{const m=monthRange(+d.m);$('#f_sdate').value=m[0];$('#f_edate').value=m[1]},
  ridsAll:()=>{M.rids=DB.restaurants.filter(r=>r.active).map(r=>r.id);$('#ridbox').innerHTML=ridChecks()},
  ridsNone:()=>{M.rids=[];$('#ridbox').innerHTML=ridChecks()},
@@ -1559,10 +1579,10 @@ const A={
        if(slotCap(c,nt)&&dayCount(c,nr,nd,nt)>=slotCap(c,nt))return toast(`${rs(nr).name} is full for that slot`);
        r.restaurantId=nr;r.date=nd;r.time=nt;r.slotEnd=slotsOf(c).find(x=>x.start===nt)?.end||null;const b=bl(r.bloggerId);notify(b.id,'Campaign update',`Hi ${first(b.name)}, your reservation ${r.ref} has been changed to ${rs(nr).name} on ${fmtD(nd)}, ${fmtT(nt)}.`)}
      save();closeModal();render();toast('Reservation updated');return}
-   const to=$('#x_c').value;
-   if(to!==r.campaignId){const c=cp(to);if(remaining(c)<1)return toast('That campaign is full');
+   const [to,ix]=$('#x_c').value.split(':');const c=cp(to);const sl=slotsOf(c)[+ix];
+   if(!(r.campaignId===to&&(r.date||c.date)===sl.date&&(r.time||c.start)===sl.start)){if(slotLeft(c,sl)<1)return toast('That time slot is full');
      const b=bl(r.bloggerId);if(!DB.invitations.some(i=>i.campaignId===to&&i.bloggerId===b.id))DB.invitations.push({id:uid('inv'),campaignId:to,bloggerId:b.id,token:b.access?.token||mkToken(),status:'Prepared',createdAt:Date.now(),message:'Added by admin'});
-     r.campaignId=to;notify(b.id,'Campaign update',`Hi ${first(b.name)}, your reservation ${r.ref} has been moved to ${rs(c.restaurantId).name} on ${fmtD(c.date)}, ${fmtT(c.start)} – ${fmtT(c.end)}.`)}
+     r.campaignId=to;r.restaurantId=c.restaurantId;r.date=sl.date;r.time=sl.start;r.slotEnd=sl.end;notify(b.id,'Campaign update',`Hi ${first(b.name)}, your reservation ${r.ref} has been moved to ${rs(c.restaurantId).name} on ${fmtD(sl.date)}, ${slotLabel(sl)}.`)}
    save();closeModal();render();toast('Reservation updated')},
  newRestaurant:()=>restaurantForm(null),
  editRestaurant:d=>restaurantForm(d.id),
@@ -1609,7 +1629,7 @@ const A={
    const res=reserveSpot(M.oc,S.portal.bloggerId,{restaurantId:M.or,date:$('#o_date').value,time:sl.value});
    if(!res.ok){$('#o_info').innerHTML=`<span style="color:#9b3526">${esc(res.msg)}</span>`;return}
    closeModal();S.portal.openC=null;render();pResSheet(res.res.id,true)},
- pConfirm:d=>{const res=reserveSpot(d.id,S.portal.bloggerId);closeModal();render();
+ pConfirm:d=>{const res=reserveSpot(d.id,S.portal.bloggerId,{slotIdx:(document.querySelector('input[name=s_slot]:checked')||{}).value});closeModal();render();
    if(res.ok)pResSheet(res.res.id,true);else openModal({sheet:true,title:res.full?'Fully booked':'Unable to book',body:`<p style="margin-top:0">${esc(res.msg)}</p><button class="pbtn" data-action="closeModal">OK</button>`})},
  pViewRes:d=>pResSheet(d.id,false),
  pCancel:d=>{const r=DB.reservations.find(x=>x.id===d.id);if(!canBloggerCancel(r)){closeModal();return toast('The cancellation window has closed')}
@@ -1637,7 +1657,8 @@ document.addEventListener('change',e=>{
   if(t.dataset.select){S[t.dataset.select]=t.value;render()}
   else if(t.dataset.addgrp){if(t.value){DB.memberships.push({groupId:t.value,bloggerId:t.dataset.addgrp});save();render();toast('Added to group')}}
   else if(t.id==='f_otype'){$('#otypebox').dataset.ot=t.value}
-  else if(t.name==='f_type'){M.type=t.value;$('#cform').dataset.type=t.value}
+  else if(t.name==='f_type'){syncSlots();M.type=t.value;$('#cform').dataset.type=t.value;M.slots.forEach(x=>{if(M.type==='single'){x.date=x.date||addDays(7);if(!x.cap)x.cap=5}});$('#slotbox').innerHTML=slotRows();updateSlotTotal()}
+  else if(t.dataset.sc!==undefined||t.dataset.sd!==undefined){syncSlots();updateSlotTotal()}
   else if(t.dataset.rid){const id=t.dataset.rid;M.rids=t.checked?[...M.rids,id]:M.rids.filter(x=>x!==id)}
   else if(t.id==='f_everyone'){M.everyone=t.checked;updateAudience()}
   else if(t.dataset.gid){const id=t.dataset.gid;M.groupIds=t.checked?[...M.groupIds,id]:M.groupIds.filter(x=>x!==id);updateAudience()}
