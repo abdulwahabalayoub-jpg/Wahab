@@ -332,6 +332,30 @@ tr.click:hover td{background:#fdf9ef}
 .st-go{margin-top:8px;font-size:12px;font-weight:600;color:var(--gold-dd);opacity:0;transition:opacity .15s}
 .stat:hover .st-go,.stat:focus-visible .st-go{opacity:1}
 @media (hover:none){.st-go{opacity:1}}
+.jtabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:16px}
+.jtabs button{display:flex;gap:14px;align-items:center;text-align:left;background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s}
+.jtabs button>span{font-size:26px;width:48px;height:48px;border-radius:14px;background:var(--gold-bg);display:grid;place-items:center;flex:none}
+.jtabs button b{display:block;font-size:15.5px}.jtabs button small{color:var(--ink2);font-size:12.5px}
+.jtabs button:hover{border-color:#e6cf8f}
+.jtabs button.on{border-color:var(--gold-d);box-shadow:0 0 0 3px #c2941b26,var(--shadow)}
+.jrow{display:flex;gap:26px;overflow-x:auto;padding:6px 4px 22px;margin-bottom:6px;scroll-snap-type:x proximity}
+.jstep{flex:none;width:340px;scroll-snap-align:start}
+.jlab{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;min-height:46px}
+.jn{width:26px;height:26px;border-radius:50%;background:var(--gold-d);color:#fff;display:grid;place-items:center;font-weight:600;font-size:12.5px;flex:none;margin-top:1px}
+.pf{position:relative;height:640px;border-radius:34px;border:8px solid #2a2d33;background:#fffcf5;overflow:hidden;box-shadow:0 18px 40px #3b2a1a26}
+.pf-scroll{height:100%;overflow-y:auto;scrollbar-width:none}
+.pf-scroll::-webkit-scrollbar{display:none}
+.pf *{pointer-events:none}
+.pf-scroll{pointer-events:auto}
+.pf .bnav{position:sticky;bottom:0;max-width:none;width:100%}
+.pf-dim{position:absolute;inset:0;background:#1f232859}
+.pf-sheet{pointer-events:auto;scrollbar-width:none;position:absolute;left:0;right:0;bottom:0;max-height:84%;overflow-y:auto;background:#fff;border-radius:24px 24px 0 0;padding:10px 18px 18px;box-shadow:0 -10px 30px #0003}
+.pf-grab{width:38px;height:4px;border-radius:9px;background:#ddd5ca;margin:0 auto 10px}
+.pf-sheet .pbtn{margin-top:10px;padding:12px}
+.jrules{margin:0;padding-left:20px;display:grid;gap:8px;font-size:14px}
+.pf-sheet::-webkit-scrollbar{display:none}
+.pf-sheet img{height:84px!important}
+.pf{height:680px}
 </style>
 </head>
 <body>
@@ -634,7 +658,7 @@ function renderBar(){
 /* ============================================================
    ADMIN
    ============================================================ */
-const NAV=[['overview','Overview','🏠'],['bloggers','Microbloggers','🤳'],['groups','Groups','👥'],['campaigns','Campaigns','✨'],['reservations','Reservations','📅'],['restaurants','Restaurants','🍽️'],['settings','Settings','⚙️']];
+const NAV=[['overview','Overview','🏠'],['bloggers','Microbloggers','🤳'],['groups','Groups','👥'],['campaigns','Campaigns','✨'],['journey','Blogger journey','📱'],['reservations','Reservations','📅'],['restaurants','Restaurants','🍽️'],['settings','Settings','⚙️']];
 function renderAdmin(){
   const pend=DB.bloggers.filter(b=>b.status==='Pending').length;
   const page=S.page;
@@ -645,6 +669,7 @@ function renderAdmin(){
   else if(page==='groups'){title='👥 Groups';sub='Optional. Use groups only if you want to invite a smaller set of bloggers.';actions=`<button class="btn pri" data-action="newGroup">➕ Create a group</button>`;body=pgGroups()}
   else if(page==='campaigns'){title='✨ Campaigns';sub='Restaurant invitation campaigns';actions=`<button class="btn pri" data-action="newCampaign">✨ New campaign</button>`;body=pgCampaigns()}
   else if(page==='campaign'){const c=cp(S.campaignId);if(!c){S.page='campaigns';return renderAdmin()}title=esc(c.name);body=pgCampaign(c)}
+  else if(page==='journey'){title='📱 Blogger journey';sub='See exactly what a blogger sees, step by step, for each type of campaign';body=pgJourney()}
   else if(page==='reservations'){title='📅 Reservations';sub='All bookings across restaurants';body=pgReservations()}
   else if(page==='restaurants'){title='🍽️ Restaurants';sub=`${DB.restaurants.length} brands`;actions=`<button class="btn pri" data-action="newRestaurant">➕ Add restaurant</button>`;body=pgRestaurants()}
   else if(page==='settings'){title='⚙️ Settings';sub='Messages, rules and integrations';body=pgSettings()}
@@ -845,6 +870,63 @@ function groupSideList(){
   ${DB.groups.map(x=>`<button class="nav ${x.id===S.groupId?'on':''}" data-action="selGroup" data-id="${x.id}"><span>${esc(x.name)}</span><span class="muted small">${membersOf(x.id).length}</span></button>`).join('')||'<div class="empty">No groups yet</div>'}</div></div>`;
 }
 
+
+/* ----- Blogger journey (storyboard of the real portal screens) ----- */
+function jCamps(){return DB.campaigns.filter(c=>(S.jtype==='open')===isOpen(c)).sort((a,b)=>({Active:0,Paused:1,Draft:2,Closed:3,Completed:4,Cancelled:5})[cStatus(a)]-({Active:0,Paused:1,Draft:2,Closed:3,Completed:4,Cancelled:5})[cStatus(b)])}
+function jBlogger(c){const ok=DB.bloggers.filter(x=>x.status==='Approved'&&hasAccess(x));return ok.find(x=>!DB.reservations.some(r=>r.campaignId===c.id&&r.bloggerId===x.id&&r.status!=='Cancelled'))||ok[0]}
+function jStrip(h){return h.replace(/ data-action="[^"]*"/g,'')}
+function jCapture(fn){const o=openModal;let g=null;openModal=x=>{g=x};try{fn()}finally{openModal=o}return g}
+function jNav(tab){return `<nav class="bnav">${[['inv','Invitations','🎟️'],['book','My bookings','📅'],['acc','Account','🙂']].map(([k,l,i])=>`<button class="${tab===k?'on':''}"><span class="bem">${i}</span>${l}</button>`).join('')}</nav>`}
+function jFrame(n,title,desc,inner,sheet){
+  return `<div class="jstep"><div class="jlab"><span class="jn">${n}</span><div><div class="b">${title}</div><div class="muted small">${desc}</div></div></div>
+  <div class="pf"><div class="pf-scroll">${jStrip(inner)}</div>${sheet?`<div class="pf-dim"></div><div class="pf-sheet"><div class="pf-grab"></div><div class="b" style="font-size:15px;margin-bottom:10px">${sheet.title}</div>${jStrip(sheet.body)}</div>`:''}</div></div>`;
+}
+function pgJourney(){
+  if(!S.jtype)S.jtype='single';
+  let list=jCamps();
+  if(!list.length){S.jtype=S.jtype==='open'?'single':'open';list=jCamps()}
+  let c=cp(S.jcamp);if(!c||isOpen(c)!==(S.jtype==='open')||!list.includes(c)){c=list[0];S.jcamp=c?c.id:null}
+  const tabs=`<div class="jtabs"><button class="${S.jtype==='single'?'on':''}" data-action="jType" data-t="single"><span>📍</span><div><b>One restaurant</b><small>One restaurant, one day, limited spots</small></div></button><button class="${S.jtype==='open'?'on':''}" data-action="jType" data-t="open"><span>🗓️</span><div><b>Open invitation</b><small>Blogger picks restaurant, date and time slot</small></div></button></div>`;
+  if(!c)return tabs+'<div class="card empty">No campaigns of this type yet. Create one to preview it.</div>';
+  const b=jBlogger(c);if(!b)return tabs+'<div class="card empty">Approve a blogger and issue a link to preview the journey.</div>';
+  const open=isOpen(c);
+  const oldP=S.portal;S.portal=Object.assign({},oldP,{bloggerId:b.id});
+  const day=addDays(1);const dmin=open?(day>c.startDate?day:c.startDate):c.date;
+  const sl=open?slotsOf(c)[0]:null;
+  const tmp={id:'res_journey_tmp',ref:'RSV-7K3M9Q',campaignId:c.id,bloggerId:b.id,status:'Confirmed',attendance:'Not marked',bookedAt:Date.now(),cancelledAt:null,cancelledBy:null,notes:'',...(open?{restaurantId:c.restaurantIds[0],date:dmin,time:sl.start,slotEnd:sl.end}:{})};
+  let steps=[];
+  try{
+    const first1=esc(first(b.name));
+    const wa=`<div class="p-pad" style="background:#e9e1d6;min-height:100%;padding-top:30px"><div class="wa" style="margin-top:0"><div class="wa-h"><img src="${MNH_MARK}" alt="">MNH Al-Hajery</div><div class="wa-b">${esc(renderMsg(c,b)).replace(/\n/g,'<br>').replace(/(https:\/\/\S+)/,'<u>$1</u>')}<div class="wa-t">10:24</div></div></div><p class="small" style="color:#6f675d;margin-top:14px">This is the message the blogger receives on WhatsApp. The link is personal to them.</p></div>`;
+    const ver=`<div class="p-pad" style="padding-top:34px"><div class="success-ic" style="margin:8px 0 0;background:#f1ebe2;color:#1f2328">${ic('shield',28)}</div><div class="p-hello" style="margin-top:16px">Verify it's you</div><div class="p-sub">Enter the phone number you registered with. We'll send a one-time code to it.</div><div style="display:flex;gap:8px;margin-top:22px"><input class="pinp" value="${esc(b.cc)}" style="width:90px" readonly><input class="pinp" value="${esc(b.phone)}" readonly></div><button class="pbtn">Send code</button><p class="small" style="color:#776f65;margin-top:16px">🔒 If someone else opens this link, they are stopped here because their number will not match.</p></div>`;
+    const otp=`<div class="p-pad" style="padding-top:34px"><div class="p-hello" style="margin-top:8px">Enter your code</div><div class="p-sub">We sent a 6-digit code to ${esc(b.cc)} •••• ${esc(b.phone.slice(-2))}.</div><input class="pinp otp" value="4 8 2 1 9 6" readonly style="margin-top:22px"><button class="pbtn">Verify &amp; continue</button><p class="small" style="color:#776f65;margin-top:16px">In the live version the code arrives by SMS or WhatsApp. In this demo it shows on screen.</p></div>`;
+    const hi=`<div class="p-pad" style="padding-bottom:4px"><img class="brand-logo" src="${MNH_MARK}" alt="" style="width:28px;margin-bottom:14px"><div class="p-hello">Hi ${first1} 👋</div><div class="p-sub">You have 1 invitation.</div></div>`;
+    const card=open?openCard(c,b):invCard(c,b);
+    const home=hi+card+jNav('inv');
+    const chooser=open?openChooser(c,b)+jNav('inv'):'';
+    DB.reservations.push(tmp);
+    const bkRow=(()=>{const i=rInfo(tmp),rest=i.rest;return `<div class="bk"><img src="${restThumb(rest)}" alt=""><div style="flex:1;min-width:0"><div class="t">${esc(rest.name)}</div><div class="s">${fmtD(i.date)} · ${i.end?`${fmtT(i.start)} – ${fmtT(i.end)}`:fmtT(i.start)}</div><div style="margin-top:5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">${pill('Confirmed')}<span class="ref">${tmp.ref}</span></div></div><button class="btn sm">View</button></div>`})();
+    const mine=`<div class="p-pad" style="padding-bottom:0"><div class="p-hello">My bookings 📅</div></div><div class="p-sec">📅 Upcoming</div>${bkRow}<div class="p-sec">✅ Previous visits</div><div class="p-empty">No previous visits yet.</div>${jNav('book')}`;
+    if(!open){
+      const s1=jCapture(()=>pReserveSheet(c.id)),s2=jCapture(()=>pResSheet(tmp.id,true));
+      steps=[['1','Gets the WhatsApp message','Personal link, sent by the marketing team',wa],['2','Opens the link and verifies','Phone number must match the registered one',ver],['3','Enters the code','One-time code, 5 attempts',otp],['4','Sees the invitation','Restaurant, date, time, what is included, spots left',home],['5','Taps Reserve','Confirms the details. The last spot can only be taken once',home,s1],['6','Booking confirmed','Reference number and the cancellation rule',home,s2],['7','Finds it under My bookings','Can cancel until '+c.cancelHours+' hours before',mine]];
+    }else{
+      const s1=jCapture(()=>pOpenSheet(c.id,c.restaurantIds[0])),s2=jCapture(()=>pResSheet(tmp.id,true));
+      steps=[['1','Gets the WhatsApp message','Personal link, sent by the marketing team',wa],['2','Opens the link and verifies','Phone number must match the registered one',ver],['3','Enters the code','One-time code, 5 attempts',otp],['4','Sees the open invitation','All restaurants, period, visits used this month',home],['5','Chooses a restaurant','Only active restaurants in this campaign',chooser],['6','Picks a date and time slot','Spots left per slot, fully booked slots are greyed out',chooser,s1],['7','Booking confirmed','Reference number and the cancellation rule',chooser,s2],['8','Finds it under My bookings','Can cancel until '+c.cancelHours+' hours before',mine]];
+    }
+  }finally{DB.reservations=DB.reservations.filter(r=>r.id!==tmp.id);S.portal=oldP}
+  const rules=open?[`Up to <b>${c.perMonth}</b> visits per blogger each calendar month`,`Dates between <b>${fmtD(c.startDate)}</b> and <b>${fmtD(c.endDate)}</b>, from tomorrow`,`<b>${slotsOf(c).length}</b> time slots: ${slotsOf(c).map(slotLabel).join(', ')}`,c.dailyCap?`Max <b>${c.dailyCap}</b> bloggers per restaurant per slot`:'No limit per slot',`Same restaurant cannot be booked twice on the same day`]
+    :[`<b>${c.capacity}</b> spots in total, one booking per blogger`,`When the last spot goes, everyone else sees <b>FULLY BOOKED</b>`,`If the campaign is paused or closed, the button is disabled`,`Cancelling gives the spot back instantly`];
+  const more=[`Cancel allowed until <b>${c.cancelHours} hours</b> before the visit`,...(offerLines(c).length?[`Included: ${offerLines(c).filter(l=>!l.startsWith('Choose')&&!l.startsWith('Up to')).map(esc).join(' · ')||'nothing specified'}`]:['No extras specified (guests, budget or set menu)'])];
+  return `${tabs}
+  <div class="card" style="padding:14px 18px;margin-bottom:18px"><div class="toolbar" style="margin:0">
+    <div class="field" style="margin:0;flex:1;min-width:240px"><label>Preview this campaign</label><select class="inp" data-select="jcamp" style="width:100%">${list.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${esc(cRestName(x))} · ${esc(x.name)} (${cStatus(x)})</option>`).join('')}</select></div>
+    <div class="muted small" style="max-width:320px">Shown for <b>${esc(b.name)}</b>, a sample blogger. Everything below comes from this campaign's real settings.</div>
+    <button class="btn pri" data-action="jLive" data-c="${c.id}">▶ Try it live as ${esc(first(b.name))}</button></div></div>
+  <div class="jrow">${steps.map(s=>jFrame(...s.slice(0,4),s[4])).join('')}</div>
+  <div class="card" style="margin-top:6px"><div class="card-h"><h3>📋 Rules the blogger runs into</h3></div><div class="card-b"><ul class="jrules">${[...rules,...more].map(x=>`<li>${x}</li>`).join('')}</ul></div></div>`;
+}
+
 /* ----- Campaigns ----- */
 function pgCampaigns(){
   const F=['All','Active','Draft','Paused','Closed','Completed','Cancelled'];
@@ -871,6 +953,7 @@ function pgCampaign(c){
   if(st==='Active')acts.push(`<button class="btn" data-action="editCampaign" data-id="${c.id}">${ic('edit',15)} Edit</button><button class="btn" data-action="setCStatus" data-s="Paused" data-id="${c.id}">${ic('pause',15)} Pause</button><button class="btn" data-action="setCStatus" data-s="Closed" data-id="${c.id}">Close</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   if(st==='Paused')acts.push(`<button class="btn" data-action="editCampaign" data-id="${c.id}">${ic('edit',15)} Edit</button><button class="btn pri" data-action="setCStatus" data-s="Active" data-id="${c.id}">${ic('play',15)} Resume</button><button class="btn" data-action="setCStatus" data-s="Closed" data-id="${c.id}">Close</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   if(st==='Closed')acts.push(`<button class="btn" data-action="setCStatus" data-s="Active" data-id="${c.id}">Reopen</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
+  acts.push(`<button class="btn" data-action="journeyFor" data-id="${c.id}">📱 See blogger view</button>`);
   const canEditCap=['Draft','Active','Paused','Closed'].includes(st);
   const delivered=inv.filter(i=>i.status==='Delivered (simulated)').length;
   const tab=S.ctab;
@@ -1461,6 +1544,9 @@ const A={
  stab:d=>{S.stab=d.t;render()},
  newCampaign:()=>campaignForm(null),
  newCampaignT:d=>campaignForm(null,d.t),
+ jType:d=>{S.jtype=d.t;S.jcamp=null;render()},
+ journeyFor:d=>{const c=cp(d.id);S.jtype=isOpen(c)?'open':'single';S.jcamp=c.id;S.page='journey';render();window.scrollTo(0,0)},
+ jLive:d=>{const c=cp(d.c),b=jBlogger(c);S.portal={step:'phone',bloggerId:b.id,token:b.access.token};go('portal')},
  statGo:d=>{const k=d.k;Object.assign(S,{bq:'',bstatus:'All',baccess:'All',bgroup:'All',rq:'',rstatus:'All',rrest:'All',ratt:'All',rscope:'All',cfilter:'All'});
    if(['all','pending','approved','active'].includes(k)){S.page='bloggers';if(k==='pending')S.bstatus='Pending';if(k==='approved')S.bstatus='Approved';if(k==='active'){S.bstatus='Approved';S.baccess='Active'}}
    else if(k==='camps'){S.page='campaigns';S.cfilter='Active'}
