@@ -325,6 +325,13 @@ tr.click:hover td{background:#fdf9ef}
 
 .stats{grid-template-columns:repeat(auto-fit,minmax(124px,1fr))}
 .act-top{flex:1}
+
+.stat{text-align:left;font:inherit;color:inherit;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
+.stat:hover{transform:translateY(-3px);box-shadow:0 14px 30px #6b541420;border-color:#e6cf8f}
+.stat:focus-visible{outline:3px solid #c2941b66;outline-offset:2px}
+.st-go{margin-top:8px;font-size:12px;font-weight:600;color:var(--gold-dd);opacity:0;transition:opacity .15s}
+.stat:hover .st-go,.stat:focus-visible .st-go{opacity:1}
+@media (hover:none){.st-go{opacity:1}}
 </style>
 </head>
 <body>
@@ -599,7 +606,7 @@ function sendInvites(c){
 
 /* ---------- UI state ---------- */
 let S={view:'admin',page:'overview',bloggerId:null,campaignId:null,groupId:'__all',gq:'',gfilter:'all',side:false,
-bq:'',bstatus:'All',bgroup:'All',rq:'',rstatus:'All',rrest:'All',ratt:'All',rscope:'All',cfilter:'All',ctab:'inv',stab:'out',
+bq:'',bstatus:'All',baccess:'All',bgroup:'All',rq:'',rstatus:'All',rrest:'All',ratt:'All',rscope:'All',cfilter:'All',ctab:'inv',stab:'out',
 portal:{step:'link'},reg:{done:false,extra:[]}};
 let M={}; // modal scratch
 
@@ -663,7 +670,7 @@ function pgOverview(){
   const recent=[...B].sort((a,b)=>b.createdAt-a.createdAt).slice(0,6);
   const upC=DB.campaigns.filter(c=>!campEnded(c)&&c.status!=='Cancelled').sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
   const upV=DB.reservations.filter(r=>r.status==='Confirmed'&&!resPast(r)).sort((a,b)=>(rInfo(a).date+rInfo(a).start).localeCompare(rInfo(b).date+rInfo(b).start)).slice(0,6);
-  const SE=['👥','📬','✅','🔗','✨','🎟️','🗓️'];
+  const SE=['👥','📬','✅','🔗','✨','🎟️','🗓️'],SK=['all','pending','approved','active','camps','conf','upc'];
   const hr=new Date().getHours(),greet=hr<12?'Good morning':hr<18?'Good afternoon':'Good evening';
   const pend=B.filter(b=>b.status==='Pending').length,upN=upV.length,actC=DB.campaigns.filter(c=>cStatus(c)==='Active').length;
   const low=DB.campaigns.filter(c=>cStatus(c)==='Active'&&!isOpen(c)&&!campEnded(c)&&taken(c.id)<c.capacity/2).sort((a,b)=>a.date.localeCompare(b.date))[0];
@@ -678,7 +685,7 @@ function pgOverview(){
       <button class="act" data-action="newCampaignT" data-t="open"><div class="act-top"><span class="act-em">🗓️</span><div><div class="act-t">Open invitation</div><div class="act-d">Let bloggers choose any restaurant, date and time slot.</div></div></div><div class="act-art">🥂</div><div class="act-go">Create invitation <span>→</span></div></button>
       <button class="act" data-action="reviewPending"><div class="act-top"><span class="act-em">📬</span><div><div class="act-t">Review applications</div><div class="act-d">${pend?`${pend} new blogger${pend>1?'s are':' is'} waiting.`:'Approve or reject new bloggers.'}</div></div></div><div class="act-art">🤳</div><div class="act-go">Open applications <span>→</span></div></button>
     </div></div>
-  <div class="stats">${st.map((s,i)=>`<div class="card stat"><div class="st-top"><span class="st-em">${SE[i]}</span><div class="l">${s[0]}</div></div><div class="v">${s[1]}</div><div class="s">${s[2]}</div></div>`).join('')}</div>
+  <div class="stats">${st.map((s,i)=>`<button class="card stat" data-action="statGo" data-k="${SK[i]}" title="See the list behind this number"><div class="st-top"><span class="st-em">${SE[i]}</span><div class="l">${s[0]}</div></div><div class="v">${s[1]}</div><div class="s">${s[2]}</div><div class="st-go">See list →</div></button>`).join('')}</div>
   <div class="grid2">
     <div class="card"><div class="card-h"><h3>🆕 Recent registrations</h3><button class="btn ghost sm" data-action="nav" data-p="bloggers">View all ${ic('chev',14)}</button></div>
       ${recent.map(b=>`<div class="list-item click" data-action="openBlogger" data-id="${b.id}"><div class="avatar">${initials(b.name)}</div><div style="flex:1;min-width:0"><div class="b" style="font-weight:500">${esc(b.name)}</div><div class="muted small">@${esc(igOf(b)?.username||'')} · ${fmtTSd(b.createdAt)}</div></div>${pill(b.status)}</div>`).join('')}
@@ -703,6 +710,7 @@ function filteredBloggers(){
   const q=S.bq.trim().toLowerCase();
   return DB.bloggers.filter(b=>{
     if(S.bstatus!=='All'&&b.status!==S.bstatus)return false;
+    if(S.baccess==='Active'&&!hasAccess(b))return false;
     if(S.bgroup!=='All'&&!DB.memberships.some(m=>m.groupId===S.bgroup&&m.bloggerId===b.id))return false;
     if(!q)return true;
     const hay=[b.name,b.username,b.accountId,b.cc+b.phone,b.phone,...socialsOf(b.id).map(s=>s.username)].join(' ').toLowerCase();
@@ -725,6 +733,7 @@ function pgBloggers(){
   return `<div class="toolbar">
   <div class="search">${ic('search',15)}<input class="inp" placeholder="Search name, username, phone, handle…" data-filter="bq" value="${esc(S.bq)}"></div>
   <select class="inp" data-select="bstatus">${['All','Pending','Approved','Rejected','Suspended'].map(s=>`<option ${S.bstatus===s?'selected':''} value="${s}">${s==='All'?'All statuses':`${s} (${counts(s)})`}</option>`).join('')}</select>
+  <select class="inp" data-select="baccess"><option value="All" ${S.baccess==='All'?'selected':''}>All access</option><option value="Active" ${S.baccess==='Active'?'selected':''}>Link active (${DB.bloggers.filter(hasAccess).length})</option></select>
   ${DB.groups.length?`<select class="inp" data-select="bgroup"><option value="All">All groups</option>${DB.groups.map(g=>`<option value="${g.id}" ${S.bgroup===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select>`:''}
   </div><div id="tbl">${bloggersTable()}</div>`;
 }
@@ -1452,6 +1461,11 @@ const A={
  stab:d=>{S.stab=d.t;render()},
  newCampaign:()=>campaignForm(null),
  newCampaignT:d=>campaignForm(null,d.t),
+ statGo:d=>{const k=d.k;Object.assign(S,{bq:'',bstatus:'All',baccess:'All',bgroup:'All',rq:'',rstatus:'All',rrest:'All',ratt:'All',rscope:'All',cfilter:'All'});
+   if(['all','pending','approved','active'].includes(k)){S.page='bloggers';if(k==='pending')S.bstatus='Pending';if(k==='approved')S.bstatus='Approved';if(k==='active'){S.bstatus='Approved';S.baccess='Active'}}
+   else if(k==='camps'){S.page='campaigns';S.cfilter='Active'}
+   else{S.page='reservations';S.rstatus='Confirmed';if(k==='upc')S.rscope='Upcoming'}
+   render();window.scrollTo(0,0)},
  reviewPending:()=>{S.bstatus='Pending';S.page='bloggers';render()},
  editCampaign:d=>campaignForm(d.id),
  saveCampaign:d=>{const o=readCampaignForm();if(typeof o==='string')return toast(o);
