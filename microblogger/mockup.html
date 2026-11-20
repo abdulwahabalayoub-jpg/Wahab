@@ -1342,7 +1342,7 @@ function renderPortal(){
     const demo=DB.bloggers.filter(b=>b.access).sort((a,b)=>(a.access.revoked-b.access.revoked)||a.name.localeCompare(b.name));
     inner=`<div class="p-pad" style="padding-top:44px"><img class="brand-logo" src="${MNH_FULL}" alt="MNH Al-Hajery" style="width:170px">
     <div class="p-hello" style="margin-top:20px">Your invitations</div><div class="p-sub">Open the personal link we sent you on WhatsApp.</div>
-    <div style="margin-top:22px"><input class="pinp" id="pl_link" placeholder="Paste your personal link" value="${esc(P.prefill||'')}"></div>
+    <div style="margin-top:22px"><input class="pinp" id="pl_link" placeholder="Paste your personal link, or just press Continue (demo)" value="${esc(P.prefill||'')}"></div>
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     <button class="pbtn" data-action="pOpenLink">Continue</button>
     <p class="small" style="text-align:center;margin:14px 0 0;color:#776f65">New blogger? <button class="btn ghost sm" style="color:var(--gold-d);font-weight:600" data-action="view" data-v="register">Apply here</button></p>
@@ -1352,14 +1352,14 @@ function renderPortal(){
     inner=`<div class="p-pad" style="padding-top:44px"><button class="crumb" data-action="pBack">${ic('back',14)} Back</button>
     <div class="success-ic" style="margin:18px 0 0;background:#f1ebe2;color:#1f2328">${ic('shield',28)}</div>
     <div class="p-hello" style="margin-top:16px">Verify it's you</div><div class="p-sub">Enter the phone number you registered with. We'll send a one-time code to it.</div>
-    <div style="display:flex;gap:8px;margin-top:22px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" placeholder="Phone number"></div>
+    <div style="display:flex;gap:8px;margin-top:22px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" placeholder="Phone number (demo: leave empty)"></div>
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     <button class="pbtn" data-action="pSendOtp">Send code</button>
     <div class="p-demo"><b>Demo:</b> this link belongs to ${esc(b.name)} (${esc(b.cc)} •••• ${esc(b.phone.slice(-2))}). Anyone else who opens it is stopped here. <button class="btn sm" style="margin-top:6px" data-action="pFillPhone">Fill the registered number</button></div></div>`;
   }else if(P.step==='otp'){
     inner=`<div class="p-pad" style="padding-top:44px"><button class="crumb" data-action="pBackPhone">${ic('back',14)} Back</button>
     <div class="p-hello" style="margin-top:18px">Enter your code</div><div class="p-sub">We sent a 6-digit code to ${esc(P.phoneShown)}.</div>
-    <input class="pinp otp" id="po_code" inputmode="numeric" maxlength="6" placeholder="••••••" style="margin-top:22px">
+    <input class="pinp otp" id="po_code" inputmode="numeric" maxlength="6" placeholder="Leave empty in the demo" style="margin-top:22px">
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     <button class="pbtn" data-action="pVerify">Verify &amp; continue</button>
     <div class="p-demo"><b>Demo mode:</b> WhatsApp/SMS is not connected, so no code was actually sent. Your code is <b class="mono" style="font-size:14px">${P.otp}</b></div></div>`;
@@ -1613,7 +1613,9 @@ const A={
  regAgain:()=>{S.reg={done:false,extra:[]};render()},
  // portal
  pDemoLink:d=>{const b=bl(d.id);S.portal={step:'link',prefill:linkOf(b)};render()},
- pOpenLink:()=>{const v=$('#pl_link').value.trim();const tok=(v.split('/p/')[1]||v).split(/[?#\s]/)[0];
+ pOpenLink:()=>{const v=$('#pl_link').value.trim();
+   if(!v){const d0=DB.bloggers.find(x=>x.access&&!x.access.revoked&&x.status==='Approved');if(d0){S.portal={step:'phone',bloggerId:d0.id,token:d0.access.token};return render()}}
+   const tok=(v.split('/p/')[1]||v).split(/[?#\s]/)[0];
    const b=DB.bloggers.find(x=>x.access&&x.access.token===tok);
    if(!tok||!b){S.portal={step:'link',prefill:v,err:"This link isn't valid. Please use the personal link we sent you on WhatsApp."};return render()}
    if(b.status==='Suspended'){S.portal={step:'link',prefill:v,err:'This account is suspended. Please contact the marketing team.'};return render()}
@@ -1623,10 +1625,10 @@ const A={
  pBackPhone:()=>{S.portal.step='phone';S.portal.err='';render()},
  pFillPhone:()=>{const b=portalBlogger();$('#pv_cc').value=b.cc;$('#pv_phone').value=b.phone},
  pSendOtp:()=>{const b=portalBlogger();const cc=$('#pv_cc').value.trim(),ph=$('#pv_phone').value.replace(/\D/g,'');
-   if(cc!==b.cc||ph!==b.phone){S.portal.err="This number doesn't match the account this link belongs to. Personal links only work for the person they were sent to.";return render()}
+   if(ph!==''&&(cc!==b.cc||ph!==b.phone)){S.portal.err="This number doesn't match the account this link belongs to. Personal links only work for the person they were sent to.";return render()}
    S.portal.otp=String(100000+Math.floor(Math.random()*900000));S.portal.tries=0;S.portal.step='otp';S.portal.err='';S.portal.phoneShown=`${b.cc} •••• ${b.phone.slice(-2)}`;render();setTimeout(()=>$('#po_code')?.focus(),30)},
  pVerify:()=>{const P=S.portal;const v=$('#po_code').value.trim();
-   if(v!==P.otp){P.tries=(P.tries||0)+1;if(P.tries>=5){S.portal={step:'link',err:'Too many attempts. Please open your link again.'};return render()}P.err=`Incorrect code. ${5-P.tries} attempts left.`;return render()}
+   if(v!==''&&v!==P.otp){P.tries=(P.tries||0)+1;if(P.tries>=5){S.portal={step:'link',err:'Too many attempts. Please open your link again.'};return render()}P.err=`Incorrect code. ${5-P.tries} attempts left.`;return render()}
    const b=portalBlogger();b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
  pTab:d=>{S.portal.tab=d.t;S.portal.openC=null;render();window.scrollTo(0,0)},
  pReserve:d=>pReserveSheet(d.id),
