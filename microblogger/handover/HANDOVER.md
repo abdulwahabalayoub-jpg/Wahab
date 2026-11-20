@@ -417,3 +417,7 @@ create table notifications (
 ## 12. Suggested first prompt to paste into Claude Code
 
 > Read HANDOVER.md, ORIGINAL_BRIEF.md and prototype.html in this folder. The prototype is the approved design and behaviour. Plan the production build (React + TypeScript + Tailwind + Supabase) following section 9, keeping every rule in section 6. Show me the plan in short bullet points first, then build it step by step. I don't code, so tell me exactly what to run and what to click.
+
+## 13. Later change (mock-up, `microblogger/mockup.html`)
+12. Friendlier look (gold and white, emoji icons, greeting, action cards).
+13. **No default groups.** The sample groups (General, Food, Lifestyle, Regular, Priority) were removed. Everyone is just a blogger. Campaigns can target "All approved bloggers" (`everyone` flag) or individual bloggers. Groups are an optional feature: the Groups page has a "Create a group" button, and group filters and group boxes only appear once at least one group exists. Storage key bumped to `mbms-demo-v8`.
