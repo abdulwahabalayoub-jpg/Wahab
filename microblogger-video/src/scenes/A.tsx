@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, staticFile } from "remotion";
 import { C, prog, sans, serif, typed } from "../theme";
+import { useCurrentFrame } from "../theme";
 import { Avatar, BRANDS, BrandLogo, Btn, Cursor, Field, PBtn, PHello, Phone, Pop, Reveal, Stage, Status, Win } from "../ui";
 
 /* 1. Title */

@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, staticFile } from "remotion";
 import { C, lerp, prog, sans, serif } from "./theme";
+import { useCurrentFrame } from "./theme";
 
 export const Reveal: React.FC<{
   d: number;

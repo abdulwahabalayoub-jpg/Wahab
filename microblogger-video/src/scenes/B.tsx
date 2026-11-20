@@ -1,6 +1,7 @@
 import React from "react";
-import { Img, staticFile, useCurrentFrame } from "remotion";
+import { Img, staticFile } from "remotion";
 import { C, prog, serif, typed } from "../theme";
+import { useCurrentFrame } from "../theme";
 import { BRANDS, BrandLogo, Btn, Count, Cursor, Field, PBtn, PHello, Phone, Reveal, Stage, Win } from "../ui";
 
 const Chip: React.FC<{ children: React.ReactNode }> = ({ children }) => (

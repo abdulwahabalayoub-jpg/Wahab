@@ -3,26 +3,26 @@ import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { slide } from "@remotion/transitions/slide";
-import { C, sans } from "./theme";
+import { C, sans, SpeedContext } from "./theme";
 import { Apply, Overview, Problem, Title, Approve } from "./scenes/A";
 import { Campaign, Invite, Verify } from "./scenes/B";
-import { BookOpen, BookSingle, Close, Manage, Track } from "./scenes/C";
+import { BookOpen, BookSingle, Close, Track } from "./scenes/C";
 
-export const TRANSITION = 14;
-export const SCENES: { id: string; c: React.FC; d: number }[] = [
-  { id: "title", c: Title, d: 130 },
-  { id: "problem", c: Problem, d: 220 },
-  { id: "overview", c: Overview, d: 190 },
-  { id: "apply", c: Apply, d: 220 },
-  { id: "approve", c: Approve, d: 230 },
-  { id: "campaign", c: Campaign, d: 340 },
-  { id: "invite", c: Invite, d: 190 },
-  { id: "verify", c: Verify, d: 240 },
-  { id: "single", c: BookSingle, d: 250 },
-  { id: "open", c: BookOpen, d: 280 },
-  { id: "manage", c: Manage, d: 200 },
-  { id: "track", c: Track, d: 200 },
-  { id: "close", c: Close, d: 170 },
+export const TRANSITION = 10;
+// d = frames in the final cut, k = playback speed (scene length at normal speed = d * k)
+export const SCENES: { id: string; c: React.FC; d: number; k: number }[] = [
+  { id: "title", c: Title, d: 100, k: 1.3 },
+  { id: "problem", c: Problem, d: 120, k: 1.83 },
+  { id: "overview", c: Overview, d: 90, k: 2.1 },
+  { id: "apply", c: Apply, d: 105, k: 2.1 },
+  { id: "approve", c: Approve, d: 120, k: 1.9 },
+  { id: "campaign", c: Campaign, d: 195, k: 1.75 },
+  { id: "invite", c: Invite, d: 84, k: 2.26 },
+  { id: "verify", c: Verify, d: 126, k: 1.9 },
+  { id: "single", c: BookSingle, d: 135, k: 1.85 },
+  { id: "open", c: BookOpen, d: 135, k: 2.07 },
+  { id: "track", c: Track, d: 100, k: 2.0 },
+  { id: "close", c: Close, d: 100, k: 1.7 },
 ];
 export const TOTAL = SCENES.reduce((a, s) => a + s.d, 0) - TRANSITION * (SCENES.length - 1);
 
@@ -45,7 +45,9 @@ export const Explainer: React.FC = () => (
       {SCENES.flatMap((s, i) => {
         const items = [
           <TransitionSeries.Sequence key={s.id} durationInFrames={s.d} premountFor={30}>
-            <s.c />
+            <SpeedContext.Provider value={s.k}>
+              <s.c />
+            </SpeedContext.Provider>
           </TransitionSeries.Sequence>,
         ];
         if (i < SCENES.length - 1) {

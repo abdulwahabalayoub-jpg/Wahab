@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, staticFile } from "remotion";
 import { C, prog, sans, serif } from "../theme";
+import { useCurrentFrame } from "../theme";
 import { Avatar, BRANDS, BrandLogo, Count, Cursor, PBtn, PHello, Phone, Pop, Reveal, Sheet, Stage, Status, Win } from "../ui";
 
 const layer = (o: number): React.CSSProperties => ({ position: "absolute", inset: 0, paddingTop: 56, opacity: o });
@@ -207,7 +208,7 @@ export const Track: React.FC = () => {
   const tiles: [string, string, number][] = [["✅", "Approved bloggers", 16], ["✨", "Active campaigns", 4], ["🎟️", "Confirmed bookings", 18], ["🗓️", "Upcoming visits", 16]];
   const rows: [string, string, string, number][] = [["Ahmed Al Salem", "Solia", "Sat 28 Nov · 6 PM", 0], ["Fatma Al Rashed", "Khaneen", "Sat 28 Nov · 6 PM", 1], ["Noura Al Ali", "Delfino", "Sun 29 Nov · 2 PM", 2]];
   return (
-    <Stage side="admin" title="Step 9. Track every visit" bullets={["Live counts for bloggers, campaigns and bookings", "Mark attended or no-show after the visit", "Full history for each blogger"]} bulletsAt={24}
+    <Stage side="admin" title="Step 8. Track every visit" bullets={["Live counts for bloggers, campaigns and bookings", "Mark attended or no-show after the visit", "Full history for each blogger"]} bulletsAt={24}
       extra={<div style={{ marginTop: 26, fontSize: 21, color: C.mute }}>Figures shown are sample data.</div>}>
       <Win active="Overview">
         <div style={{ padding: "24px 28px" }}>

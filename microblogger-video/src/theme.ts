@@ -1,5 +1,10 @@
 import { loadFont } from "@remotion/fonts";
-import { Easing, interpolate, staticFile } from "remotion";
+import { createContext, useContext } from "react";
+import { Easing, interpolate, staticFile, useCurrentFrame as useRemotionFrame } from "remotion";
+
+/** Scenes were authored at normal speed; the short cut plays them faster. */
+export const SpeedContext = createContext(1);
+export const useCurrentFrame = () => useRemotionFrame() * useContext(SpeedContext);
 
 export const serif = "Fraunces, Georgia, serif";
 export const sans = "Inter, system-ui, sans-serif";
