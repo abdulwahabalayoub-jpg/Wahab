@@ -1,5 +1,6 @@
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { Audio } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { slide } from "@remotion/transitions/slide";
@@ -10,19 +11,19 @@ import { BookOpen, BookSingle, Close, Track } from "./scenes/C";
 
 export const TRANSITION = 10;
 // d = frames in the final cut, k = playback speed (scene length at normal speed = d * k)
-export const SCENES: { id: string; c: React.FC; d: number; k: number }[] = [
-  { id: "title", c: Title, d: 100, k: 1.3 },
-  { id: "problem", c: Problem, d: 120, k: 1.83 },
-  { id: "overview", c: Overview, d: 90, k: 2.1 },
-  { id: "apply", c: Apply, d: 105, k: 2.1 },
-  { id: "approve", c: Approve, d: 120, k: 1.9 },
-  { id: "campaign", c: Campaign, d: 195, k: 1.75 },
-  { id: "invite", c: Invite, d: 84, k: 2.26 },
-  { id: "verify", c: Verify, d: 126, k: 1.9 },
-  { id: "single", c: BookSingle, d: 135, k: 1.85 },
-  { id: "open", c: BookOpen, d: 135, k: 2.07 },
-  { id: "track", c: Track, d: 100, k: 2.0 },
-  { id: "close", c: Close, d: 100, k: 1.7 },
+export const SCENES: { id: string; c: React.FC; d: number; k: number; vo: string }[] = [
+  { id: "title", c: Title, d: 100, k: 1.3, vo: "01" },
+  { id: "problem", c: Problem, d: 120, k: 1.833, vo: "02" },
+  { id: "overview", c: Overview, d: 86, k: 2.209, vo: "03" },
+  { id: "apply", c: Apply, d: 100, k: 2.2, vo: "04" },
+  { id: "approve", c: Approve, d: 118, k: 1.949, vo: "05" },
+  { id: "campaign", c: Campaign, d: 202, k: 1.683, vo: "06" },
+  { id: "invite", c: Invite, d: 90, k: 2.111, vo: "07" },
+  { id: "verify", c: Verify, d: 120, k: 2.0, vo: "08" },
+  { id: "single", c: BookSingle, d: 156, k: 1.603, vo: "09" },
+  { id: "open", c: BookOpen, d: 140, k: 2.0, vo: "10" },
+  { id: "track", c: Track, d: 94, k: 2.128, vo: "11" },
+  { id: "close", c: Close, d: 100, k: 1.7, vo: "12" },
 ];
 export const TOTAL = SCENES.reduce((a, s) => a + s.d, 0) - TRANSITION * (SCENES.length - 1);
 
@@ -48,6 +49,9 @@ export const Explainer: React.FC = () => (
             <SpeedContext.Provider value={s.k}>
               <s.c />
             </SpeedContext.Provider>
+            <Sequence from={6} layout="none">
+              <Audio src={staticFile(`vo/${s.vo}.mp3`)} premountFor={30} />
+            </Sequence>
           </TransitionSeries.Sequence>,
         ];
         if (i < SCENES.length - 1) {
