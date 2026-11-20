@@ -1106,7 +1106,6 @@ function campaignForm(id,preType){
   </div>
   <div class="sec-t" style="margin-top:6px">Capacity &amp; limits</div>
   <div class="row">  <div class="field only-open"><label>Max visits per blogger per month</label><input class="inp" type="number" min="1" id="f_permonth" value="${d.perMonth||2}"></div>
-  <div class="field"><label>Number of bloggers to invite</label><input class="inp" type="number" min="1" id="f_limit" value="${d.inviteLimit||''}" placeholder="All in audience"><span class="hint">Leave empty to invite everyone selected</span></div>
   <div class="field"><label>Cancellation window (hours)</label><input class="inp" type="number" min="0" id="f_hours" value="${d.cancelHours}"><span class="hint">Bloggers can cancel up to this many hours before</span></div></div>
   <div class="sec-t" style="margin-top:6px">Audience</div>
   <div class="field"><label>Who to invite</label><div><label class="gchk"><input type="checkbox" id="f_everyone" ${M.everyone?'checked':''}> 🌟 All approved bloggers <span class="muted small">${DB.bloggers.filter(b=>b.status==='Approved').length}</span></label>${DB.groups.map(g=>`<label class="gchk"><input type="checkbox" data-gid="${g.id}" ${M.groupIds.includes(g.id)?'checked':''}> ${esc(g.name)} <span class="muted small">${membersOf(g.id).filter(b=>b.status==='Approved').length}</span></label>`).join('')}</div></div>
@@ -1143,7 +1142,7 @@ function updateAudience(){
 }
 function readCampaignForm(){
   const v=id=>$('#'+id).value;
-  const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:ot==='menu'?v('f_menu').trim():'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?null:v('f_sdate'),start:null,end:null,capacity:null,inviteLimit:parseInt(v('f_limit'))||null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
+  const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:ot==='menu'?v('f_menu').trim():'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?null:v('f_sdate'),start:null,end:null,capacity:null,inviteLimit:null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
   if(!o.name)return 'Add a campaign name.';
   if(ot==='budget'&&!o.budget)return 'Add the table budget amount, or choose "Nothing specified".';
   if(ot==='menu'&&!o.setMenu)return 'Describe the set menu, or choose "Nothing specified".';
