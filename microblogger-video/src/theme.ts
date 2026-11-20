@@ -4,6 +4,9 @@ import { Easing, interpolate, staticFile, useCurrentFrame as useRemotionFrame } 
 
 /** Scenes were authored at normal speed; the short cut plays them faster. */
 export const SpeedContext = createContext(1);
+/** "land" = 1920x1080, "port" = 1080x1920 (WhatsApp / phone). */
+export const FormatContext = createContext<"land" | "port">("land");
+export const useFormat = () => useContext(FormatContext);
 export const useCurrentFrame = () => useRemotionFrame() * useContext(SpeedContext);
 
 export const serif = "Fraunces, Georgia, serif";

@@ -39,7 +39,7 @@ export const Campaign: React.FC = () => {
   const tab = (on: boolean): React.CSSProperties => ({ flex: 1, padding: "13px 18px", borderRadius: 16, fontSize: 18, fontWeight: 600, border: `2px solid ${on ? C.goldD : C.line}`, background: on ? C.goldBg : "#fff", color: C.ink });
   return (
     <Stage side="admin" title="Step 3. Create a campaign in one form" sub="One restaurant, or open to every restaurant. Same simple layout." bullets={["Tables per time slot, total added up for you", "Guests and table budget in the same place", "Choose exactly who is invited"]} bulletsAt={60}>
-      <Win active="Campaigns">
+      <Win active="Campaigns" focus={[[0, 500, 350, 1], [30, 610, 330, 1.48], [196, 610, 330, 1.48], [280, 610, 430, 1.48]]}>
         <div style={{ padding: "22px 28px", position: "relative", height: "100%" }}>
           <div style={{ display: "flex", gap: 14 }}>
             <div style={{ ...tab(openP < 0.5) }}>📍 One restaurant visit</div>

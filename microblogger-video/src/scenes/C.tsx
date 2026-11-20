@@ -1,7 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Img, staticFile } from "remotion";
-import { C, prog, sans, serif } from "../theme";
-import { useCurrentFrame } from "../theme";
+import { C, prog, sans, serif, useCurrentFrame, useFormat } from "../theme";
 import { Avatar, BRANDS, BrandLogo, Count, Cursor, PBtn, PHello, Phone, Pop, Reveal, Sheet, Stage, Status, Win } from "../ui";
 
 const layer = (o: number): React.CSSProperties => ({ position: "absolute", inset: 0, paddingTop: 56, opacity: o });
@@ -210,7 +209,7 @@ export const Track: React.FC = () => {
   return (
     <Stage side="admin" title="Step 8. Track every visit" bullets={["Live counts for bloggers, campaigns and bookings", "Mark attended or no-show after the visit", "Full history for each blogger"]} bulletsAt={24}
       extra={<div style={{ marginTop: 26, fontSize: 21, color: C.mute }}>Figures shown are sample data.</div>}>
-      <Win active="Overview">
+      <Win active="Overview" focus={[[0, 500, 350, 1], [14, 610, 230, 1.45], [70, 610, 330, 1.45]]}>
         <div style={{ padding: "24px 28px" }}>
           <div style={{ fontFamily: serif, fontSize: 32, fontWeight: 600, marginBottom: 16 }}>Good morning, Marketing Team 👋</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
@@ -247,22 +246,23 @@ export const Track: React.FC = () => {
 
 /* 13. Close */
 export const Close: React.FC = () => {
+  const port = useFormat() === "port";
   const items = [["💬", "No manual DMs"], ["🔐", "Private personal links"], ["🎟️", "Never overbooked"], ["📊", "Every visit tracked"]];
   return (
     <AbsoluteFill style={{ fontFamily: sans, background: `radial-gradient(1200px 800px at 50% 20%, #fff1cf 0%, rgba(255,241,207,0) 65%), ${C.cream}`, alignItems: "center" }}>
-      <Reveal d={0} style={{ marginTop: 110 }}><Img src={staticFile("mnh_full.png")} style={{ width: 260 }} /></Reveal>
-      <Reveal d={8}><h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: 104, letterSpacing: -2.5, lineHeight: 1.05, textAlign: "center", margin: "34px 0 0", color: C.ink }}>From first message<br />to finished visit.</h1></Reveal>
-      <div style={{ display: "flex", gap: 22, marginTop: 64 }}>
+      <Reveal d={0} style={{ marginTop: port ? 230 : 110 }}><Img src={staticFile("mnh_full.png")} style={{ width: port ? 360 : 260 }} /></Reveal>
+      <Reveal d={8}><h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: port ? 92 : 104, letterSpacing: -2.5, lineHeight: 1.05, textAlign: "center", margin: "34px 0 0", color: C.ink }}>From first message<br />to finished visit.</h1></Reveal>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 22, marginTop: port ? 90 : 64, width: port ? 820 : "auto" }}>
         {items.map(([e, t], i) => (
           <Pop key={t} d={26 + i * 10}>
-            <div style={{ width: 360, padding: "30px 28px", borderRadius: 28, background: "#fff", border: `1.5px solid ${C.line}`, boxShadow: "0 22px 44px rgba(59,42,26,.1)", textAlign: "center" }}>
+            <div style={{ width: port ? 400 : 360, padding: "30px 28px", borderRadius: 28, background: "#fff", border: `1.5px solid ${C.line}`, boxShadow: "0 22px 44px rgba(59,42,26,.1)", textAlign: "center" }}>
               <div style={{ fontSize: 54 }}>{e}</div>
               <div style={{ fontSize: 30, fontWeight: 600, marginTop: 12 }}>{t}</div>
             </div>
           </Pop>
         ))}
       </div>
-      <Reveal d={80}><div style={{ marginTop: 60, fontSize: 32, color: C.ink2 }}>Interactive mock-up ready. Next step: the live build.</div></Reveal>
+      <Reveal d={80}><div style={{ marginTop: 60, fontSize: port ? 38 : 32, color: C.ink2, textAlign: "center", padding: "0 70px" }}>Interactive mock-up ready. Next step: the live build.</div></Reveal>
     </AbsoluteFill>
   );
 };

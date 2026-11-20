@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Img, staticFile } from "remotion";
 import { C, lerp, prog, sans, serif } from "./theme";
-import { useCurrentFrame } from "./theme";
+import { useCurrentFrame, useFormat } from "./theme";
 
 export const Reveal: React.FC<{
   d: number;
@@ -56,7 +56,22 @@ export const Stage: React.FC<{
   bulletsAt?: number;
   extra?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ side, title, sub, bullets, bulletsAt = 40, extra, children }) => (
+}> = ({ side, title, sub, bullets, bulletsAt = 40, extra, children }) => {
+  const port = useFormat() === "port";
+  if (port) {
+    return (
+      <AbsoluteFill style={{ fontFamily: sans, background: `radial-gradient(900px 600px at 80% 4%, #fff0c9 0%, rgba(255,240,201,0) 62%), ${C.cream}` }}>
+        <div style={{ position: "absolute", left: 70, right: 70, top: 140 }}>
+          <Reveal d={0}><SidePill side={side} /></Reveal>
+          <Reveal d={6}>
+            <h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: 78, lineHeight: 1.05, letterSpacing: -1.6, color: C.ink, margin: "26px 0 0", textWrap: "balance" }}>{title}</h1>
+          </Reveal>
+        </div>
+        <div style={{ position: "absolute", left: 0, right: 0, top: 560, bottom: 90, display: "grid", placeItems: "center", overflow: "hidden" }}>{children}</div>
+      </AbsoluteFill>
+    );
+  }
+  return (
   <AbsoluteFill
     style={{
       fontFamily: sans,
@@ -122,13 +137,17 @@ export const Stage: React.FC<{
       {children}
     </div>
   </AbsoluteFill>
-);
+  );
+};
 
 export const Phone: React.FC<{ children: React.ReactNode; scale?: number; bg?: string }> = ({
   children,
-  scale = 1.12,
+  scale: scaleProp,
   bg = "#fffcf5",
-}) => (
+}) => {
+  const fmt = useFormat();
+  const scale = scaleProp ?? (fmt === "port" ? 1.5 : 1.12);
+  return (
   <div
     style={{
       width: 390,
@@ -159,7 +178,8 @@ export const Phone: React.FC<{ children: React.ReactNode; scale?: number; bg?: s
     />
     <div style={{ position: "absolute", inset: 0, paddingTop: 56 }}>{children}</div>
   </div>
-);
+  );
+};
 
 /** Admin window. Content area is 1000 x 620 natural pixels. */
 export const Win: React.FC<{
@@ -167,7 +187,16 @@ export const Win: React.FC<{
   active?: string;
   scale?: number;
   badge?: number;
-}> = ({ children, active = "Overview", scale = 0.95, badge = 4 }) => {
+  /** portrait only: camera keys [frame, centreX, centreY, zoom] in window pixels */
+  focus?: [number, number, number, number][];
+}> = ({ children, active = "Overview", scale = 0.95, badge = 4, focus }) => {
+  const port = useFormat() === "port";
+  const f = useCurrentFrame();
+  const keys = focus ?? [[0, 500, 350, 1]];
+  const fr = keys.map((k) => k[0]);
+  const zoom = port ? lerp(f, fr, keys.map((k) => k[3])) : scale;
+  const cx = lerp(f, fr, keys.map((k) => k[1]));
+  const cy = lerp(f, fr, keys.map((k) => k[2]));
   const nav = [
     ["🏠", "Overview"],
     ["🤳", "Microbloggers"],
@@ -177,17 +206,17 @@ export const Win: React.FC<{
     ["📅", "Reservations"],
     ["🍽️", "Restaurants"],
   ];
-  return (
+  const win = (
     <div
       style={{
         width: 1000,
         height: 700,
-        borderRadius: 26,
+        borderRadius: port ? 14 : 26,
         background: "#fff",
         overflow: "hidden",
-        boxShadow: "0 50px 90px rgba(59,42,26,.25), 0 8px 20px rgba(59,42,26,.1)",
+        boxShadow: port ? "none" : "0 50px 90px rgba(59,42,26,.25), 0 8px 20px rgba(59,42,26,.1)",
         border: `1px solid ${C.line}`,
-        scale: String(scale),
+        scale: port ? "1" : String(scale),
         fontFamily: sans,
         color: C.ink,
         position: "relative",
@@ -232,6 +261,14 @@ export const Win: React.FC<{
         </div>
         <div style={{ flex: 1, position: "relative", background: "#fdfaf3", overflow: "hidden" }}>{children}</div>
       </div>
+    </div>
+  );
+  if (!port) return win;
+  return (
+    <div style={{ position: "relative", width: 1044, height: 744, padding: 22, borderRadius: 34, background: "#1b1d21", boxShadow: "0 50px 90px rgba(59,42,26,.3)", scale: String(zoom), translate: `${(500 - cx) * zoom}px ${(350 - cy) * zoom}px`, flex: "none" }}>
+      <div style={{ position: "absolute", top: 7, left: "50%", translate: "-50% 0", width: 9, height: 9, borderRadius: 99, background: "#34373d" }} />
+      {win}
+      <div style={{ position: "absolute", left: -70, right: -70, top: 744, height: 30, borderRadius: "0 0 44px 44px", background: "linear-gradient(#d6d9de,#a9adb5)" }} />
     </div>
   );
 };

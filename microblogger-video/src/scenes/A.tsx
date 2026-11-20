@@ -1,33 +1,33 @@
 import React from "react";
 import { AbsoluteFill, Img, staticFile } from "remotion";
-import { C, prog, sans, serif, typed } from "../theme";
-import { useCurrentFrame } from "../theme";
+import { C, prog, sans, serif, typed, useCurrentFrame, useFormat } from "../theme";
 import { Avatar, BRANDS, BrandLogo, Btn, Cursor, Field, PBtn, PHello, Phone, Pop, Reveal, Stage, Status, Win } from "../ui";
 
 /* 1. Title */
 export const Title: React.FC = () => {
   const f = useCurrentFrame();
+  const port = useFormat() === "port";
   const line = prog(f, 20, 40);
   return (
     <AbsoluteFill style={{ fontFamily: sans, background: `radial-gradient(1200px 800px at 50% 30%, #fff1cf 0%, rgba(255,241,207,0) 65%), ${C.cream}`, alignItems: "center", justifyContent: "center" }}>
-      <Reveal d={0} style={{ position: "absolute", top: 130 }}>
-        <Img src={staticFile("mnh_full.png")} style={{ width: 330 }} />
+      <Reveal d={0} style={{ position: "absolute", top: port ? 260 : 130 }}>
+        <Img src={staticFile("mnh_full.png")} style={{ width: port ? 420 : 330 }} />
       </Reveal>
       <div style={{ textAlign: "center", marginTop: 40 }}>
         <Reveal d={10}>
           <div style={{ fontSize: 28, letterSpacing: 6, color: C.goldDD, fontWeight: 600, textTransform: "uppercase" }}>MNH Al-Hajery · F&B Marketing</div>
         </Reveal>
         <Reveal d={18}>
-          <h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: 118, lineHeight: 1.02, letterSpacing: -3, margin: "24px 0 0", color: C.ink }}>Microblogger<br />Management System</h1>
+          <h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: port ? 98 : 118, lineHeight: 1.02, letterSpacing: -3, margin: "24px 0 0", color: C.ink }}>Microblogger<br />Management System</h1>
         </Reveal>
         <div style={{ width: 360 * line, height: 5, background: C.gold, borderRadius: 9, margin: "34px auto 0" }} />
         <Reveal d={44}>
-          <p style={{ fontSize: 36, color: C.ink2, margin: "30px 0 0" }}>One place to invite, book and track every food creator visit</p>
+          <p style={{ fontSize: port ? 40 : 36, color: C.ink2, margin: "30px 60px 0" }}>One place to invite, book and track every food creator visit</p>
         </Reveal>
       </div>
-      <div style={{ position: "absolute", bottom: 100, left: 0, right: 0, display: "flex", gap: 22, justifyContent: "center" }}>
+      <div style={{ position: "absolute", bottom: port ? 220 : 100, left: port ? 150 : 0, right: port ? 150 : 0, display: "flex", flexWrap: "wrap", gap: 22, justifyContent: "center" }}>
         {BRANDS.map((b, i) => (
-          <Pop key={b} d={58 + i * 5}><BrandLogo name={b} size={96} /></Pop>
+          <Pop key={b} d={58 + i * 5}><BrandLogo name={b} size={port ? 130 : 96} /></Pop>
         ))}
       </div>
     </AbsoluteFill>
@@ -45,6 +45,7 @@ const DMS = [
 
 export const Problem: React.FC = () => {
   const f = useCurrentFrame();
+  const port = useFormat() === "port";
   const pains = ["Replying to every DM by hand", "Copying details into spreadsheets", "Chasing dates and confirmations", "Risk of double bookings"];
   return (
     <Stage
@@ -67,7 +68,7 @@ export const Problem: React.FC = () => {
         </div>
       }
     >
-      <div style={{ width: 640, display: "grid", gap: 20 }}>
+      <div style={{ width: 640, display: "grid", gap: 20, scale: port ? "1.45" : "1" }}>
         <Reveal d={4}>
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 6 }}>
             <div style={{ width: 62, height: 62, borderRadius: 18, background: "linear-gradient(135deg,#f9a54a,#d6249f 60%,#6a3df0)", display: "grid", placeItems: "center", fontSize: 32 }}>📸</div>
@@ -96,6 +97,7 @@ export const Problem: React.FC = () => {
 /* 3. Overview */
 export const Overview: React.FC = () => {
   const f = useCurrentFrame();
+  const port = useFormat() === "port";
   const cards = [
     { e: "📱", t: "Apply", s: "Bloggers register once", who: "Blogger" },
     { e: "🖥️", t: "Manage", s: "Approve, invite, track", who: "Marketing team" },
@@ -103,22 +105,22 @@ export const Overview: React.FC = () => {
   ];
   return (
     <AbsoluteFill style={{ fontFamily: sans, background: `radial-gradient(1100px 700px at 50% 0%, #fff0c9 0%, rgba(255,240,201,0) 62%), ${C.cream}`, alignItems: "center" }}>
-      <div style={{ marginTop: 150, textAlign: "center" }}>
-        <Reveal d={0}><h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: 92, letterSpacing: -2, margin: 0, color: C.ink }}>One platform. Three experiences.</h1></Reveal>
-        <Reveal d={14}><p style={{ fontSize: 34, color: C.ink2, marginTop: 22 }}>The whole collaboration, from the first application to the visit.</p></Reveal>
+      <div style={{ marginTop: port ? 170 : 150, textAlign: "center", padding: port ? "0 60px" : 0 }}>
+        <Reveal d={0}><h1 style={{ fontFamily: serif, fontWeight: 600, fontSize: port ? 84 : 92, letterSpacing: -2, margin: 0, color: C.ink }}>One platform. Three experiences.</h1></Reveal>
+        <Reveal d={14}><p style={{ fontSize: port ? 38 : 34, color: C.ink2, marginTop: 22 }}>The whole collaboration, from the first application to the visit.</p></Reveal>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 36, marginTop: 90 }}>
+      <div style={{ display: "flex", flexDirection: port ? "column" : "row", alignItems: "center", gap: port ? 14 : 36, marginTop: port ? 70 : 90 }}>
         {cards.map((c, i) => {
           const p = prog(f, 34 + i * 20, 26);
           return (
             <React.Fragment key={c.t}>
-              <div style={{ width: 460, padding: "44px 40px", borderRadius: 36, background: "#fff", border: `1.5px solid ${C.line}`, boxShadow: "0 30px 60px rgba(59,42,26,.12)", opacity: p, translate: `0 ${(1 - p) * 40}px`, textAlign: "center" }}>
+              <div style={{ width: port ? 880 : 460, padding: port ? "30px 40px" : "44px 40px", borderRadius: 36, background: "#fff", border: `1.5px solid ${C.line}`, boxShadow: "0 30px 60px rgba(59,42,26,.12)", opacity: p, translate: `0 ${(1 - p) * 40}px`, textAlign: "center" }}>
                 <div style={{ width: 120, height: 120, borderRadius: 34, background: C.goldBg, display: "grid", placeItems: "center", fontSize: 62, margin: "0 auto 26px" }}>{c.e}</div>
                 <div style={{ fontFamily: serif, fontSize: 56, fontWeight: 600 }}>{c.t}</div>
                 <div style={{ fontSize: 28, color: C.ink2, margin: "10px 0 22px" }}>{c.s}</div>
                 <div style={{ display: "inline-block", padding: "8px 22px", borderRadius: 99, fontSize: 22, fontWeight: 600, background: c.who === "Blogger" ? "#fff" : C.goldD, color: c.who === "Blogger" ? C.goldDD : "#fff", border: `2px solid ${C.goldD}` }}>{c.who}</div>
               </div>
-              {i < 2 ? <div style={{ fontSize: 60, color: C.gold, opacity: p }}>→</div> : null}
+              {i < 2 ? <div style={{ fontSize: port ? 44 : 60, color: C.gold, opacity: p }}>{port ? "↓" : "→"}</div> : null}
             </React.Fragment>
           );
         })}
@@ -171,7 +173,7 @@ export const Approve: React.FC = () => {
   const rows = [["Ahmed Al Salem", "@ahmed.eats.kw"], ["Mohammed Al Enezi", "@mo.foodiekw"], ["Layla Hassan", "@layla.bites"]];
   return (
     <Stage side="admin" title="Step 2. Review, approve, issue a private link" bullets={["Every application in one list", "System username and ID are generated", "One unique link per blogger, revocable"]} bulletsAt={30}>
-      <Win active="Microbloggers">
+      <Win active="Microbloggers" focus={[[0, 500, 350, 1], [26, 610, 250, 1.5], [96, 610, 390, 1.5]]}>
         <div style={{ padding: "26px 30px" }}>
           <div style={{ fontFamily: serif, fontSize: 32, fontWeight: 600 }}>🤳 Microbloggers</div>
           <div style={{ color: C.mute, fontSize: 16, margin: "4px 0 18px" }}>New applications</div>
