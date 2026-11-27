@@ -900,7 +900,7 @@ function renderBar(){
    ============================================================ */
 const WA_PATH='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z';
 const waLogo=(sz=20,col='#25D366')=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" aria-label="WhatsApp" style="display:inline-block;vertical-align:-3px;flex:none"><path fill="${col}" d="${WA_PATH}"/></svg>`;
-const NAV=[['overview','Overview','🏠'],['bloggers','Microbloggers','🤳'],['groups','Groups','👥'],['campaigns','Campaigns','✨'],['messages','Send a message','💬'],['journey','Blogger journey','📱'],['reservations','Reservations','📅'],['reports','Reports','📊'],['restaurants','Restaurants','🍽️'],['settings','Settings','⚙️']];
+const NAV=[['overview','Overview','🏠'],['bloggers','Microbloggers','🤳'],['groups','Groups','👥'],['campaigns','Campaigns','✨'],['messages','Send a message','📢'],['journey','Blogger journey','📱'],['reservations','Reservations','📅'],['reports','Reports','📊'],['restaurants','Restaurants','🍽️'],['settings','Settings','⚙️']];
 function renderAdmin(){
   const pend=DB.bloggers.filter(b=>b.status==='Pending').length;
   const page=S.page;
@@ -913,7 +913,7 @@ function renderAdmin(){
   else if(page==='campaign'){const c=cp(S.campaignId);if(!c){S.page='campaigns';return renderAdmin()}title=esc(c.name);body=pgCampaign(c)}
   else if(page==='journey'){title='📱 Blogger journey';sub='See exactly what a blogger sees, step by step, for each type of campaign';body=pgJourney()}
   else if(page==='reservations'){title='📅 Reservations';sub='All bookings across restaurants';body=pgReservations()}
-  else if(page==='messages'){title='💬 Send a message';sub='Send a WhatsApp message to all bloggers, a group, the bloggers of a campaign, or people you pick';body=pgMessages()}
+  else if(page==='messages'){title='📢 Send a message';sub='Send a WhatsApp message to all bloggers, a group, the bloggers of a campaign, or people you pick';body=pgMessages()}
   else if(page==='reports'){title='📊 Brand reports';sub='Visits, attendance and the most active bloggers, per brand and month';actions=`<button class="btn" data-action="reportCsv">⬇️ Download CSV</button>`;body=pgReports()}
   else if(page==='restaurants'){title='🍽️ Restaurants';sub=`${DB.restaurants.length} brands`;actions=`<button class="btn pri" data-action="newRestaurant">➕ Add restaurant</button>`;body=pgRestaurants()}
   else if(page==='settings'){title='⚙️ Settings';sub='Messages, rules and integrations';body=pgSettings()}
@@ -1046,7 +1046,7 @@ function pgBlogger(b){
   if(b.status==='Rejected')acts.push(`<button class="btn" data-action="approve" data-id="${b.id}">Approve instead</button>`);
   if(b.status==='Suspended')acts.push(`<button class="btn pri" data-action="reactivate" data-id="${b.id}">Reactivate</button>`);
   if(hasAccess(b))acts.push(`<button class="btn" data-action="inviteBlogger" data-id="${b.id}">✉️ Invite to a campaign</button>`);
-  if(b.status==='Approved')acts.push(`<button class="btn" data-action="msgTo" data-id="${b.id}">💬 Send a message</button>`);
+  if(b.status==='Approved')acts.push(`<button class="btn" data-action="msgTo" data-id="${b.id}">📢 Send a message</button>`);
   acts.push(`<button class="btn" data-action="editBlogger" data-id="${b.id}">${ic('edit',15)} Edit</button>`);
   return `<div class="card card-b" style="margin-bottom:16px"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
     <div class="avatar lg">${initials(b.name)}</div>
@@ -1232,7 +1232,7 @@ function pgCampaign(c){
   if(st==='Paused')acts.push(`<button class="btn" data-action="editCampaign" data-id="${c.id}">${ic('edit',15)} Edit</button><button class="btn pri" data-action="setCStatus" data-s="Active" data-id="${c.id}">${ic('play',15)} Resume</button><button class="btn" data-action="setCStatus" data-s="Closed" data-id="${c.id}">Close</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   if(st==='Closed')acts.push(`<button class="btn" data-action="setCStatus" data-s="Active" data-id="${c.id}">Reopen</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   acts.push(`<button class="btn" data-action="duplicateCampaign" data-id="${c.id}">⧉ Duplicate</button>`);
-  if(st!=='Draft')acts.push(`<button class="btn" data-action="msgCamp" data-id="${c.id}">💬 Message bloggers</button>`);
+  if(st!=='Draft')acts.push(`<button class="btn" data-action="msgCamp" data-id="${c.id}">📢 Message bloggers</button>`);
   if(!FRESH)acts.push(`<button class="btn" data-action="journeyFor" data-id="${c.id}">📱 See blogger view</button>`);
   const canEditCap=['Draft','Active','Paused','Closed'].includes(st);
   const delivered=inv.filter(i=>i.status==='Delivered (simulated)').length;

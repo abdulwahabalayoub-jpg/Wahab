@@ -546,4 +546,4 @@ Production notes:
 
 ## 21. Branding note (27 Nov 2026)
 
-Abdulwahab may sell this system later. Keep the WhatsApp logo out of the product's own branding and menus (Meta trademark). It is used only on "Send on WhatsApp" buttons, to show the channel. The menu uses 💬.
+Abdulwahab may sell this system later. Keep the WhatsApp logo out of the product's own branding and menus (Meta trademark). It is used only on "Send on WhatsApp" buttons, to show the channel. The menu uses 📢.
