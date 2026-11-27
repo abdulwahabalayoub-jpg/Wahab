@@ -417,6 +417,7 @@ tr.click:hover td{background:#fdf9ef}
 .brrow{display:grid;grid-template-columns:1fr 1.4fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
 .brrow.bk2{grid-template-columns:170px 1fr auto auto}
 .flagcard{margin-bottom:16px;border-color:#f0cdc6;background:#fffafa}.flagcard .card-h h3{color:var(--red)}
+.msgto{grid-template-columns:1fr 1fr}.msgto label{align-items:center}
 .msggrid{display:grid;grid-template-columns:260px 1fr;gap:16px}
 @media (max-width:760px){.msggrid{grid-template-columns:1fr}.brrow,.brrow.bk2{grid-template-columns:1fr auto}.brrow>input:nth-child(2){grid-column:1/2}}
 tr.grp td{background:var(--gold-bg);font-weight:600;color:var(--gold-dd);padding:8px 14px}
@@ -602,7 +603,7 @@ function renderMsg(c,b){
 }
 function notify(bid,type,message){DB.notifications.unshift({id:uid('ntf'),bloggerId:bid,type,channel:'WhatsApp',message,createdAt:Date.now(),status:FRESH?'Queued, not sent':'Queued (demo)'})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
-function migrate(){if(!DB)return;const st=DB.settings=DB.settings||{};st.msgs=st.msgs||{};if(st.reminders===undefined)st.reminders=true;DB.waitlist=DB.waitlist||[];
+function migrate(){if(!DB)return;const st=DB.settings=DB.settings||{};st.msgs=st.msgs||{};if(st.reminders===undefined)st.reminders=true;DB.waitlist=DB.waitlist||[];DB.broadcasts=DB.broadcasts||[];
   DB.restaurants.forEach(r=>{if(!r.branches||!r.branches.length)r.branches=[{id:uid('br'),name:r.location||'Main branch',maps:r.maps||''}];r.blocked=r.blocked||[]});
   DB.bloggers.forEach(b=>{if(!b.lang)b.lang='en'})}
 function load(){try{const s=localStorage.getItem(KEY);if(s){const d=JSON.parse(s);if(d&&d.version===1)return d}}catch(e){}return null}
@@ -648,7 +649,7 @@ function seedLived(R,ri){
   const pick=a=>a[Math.floor(R()*a.length)];const chance=p=>R()<p;const now=Date.now();
   const hh=h=>String(h).padStart(2,'0')+':00';const ts=(d,t)=>at(d,t).getTime();
   const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-  ['bloggers','socials','groups','memberships','campaigns','invitations','reservations','notifications','waitlist'].forEach(k=>DB[k]=[]);
+  ['bloggers','socials','groups','memberships','campaigns','invitations','reservations','notifications','waitlist','broadcasts'].forEach(k=>DB[k]=[]);
   DB.settings.lenient=true;DB.settings.signin='both';
   const NM=[['Ahmed Al-Ali','ahmed.eats.kw'],['Fatma Al-Mutairi','fatma.foodie'],['Noura Al-Enezi','nouraskitchen.kw'],['Yousef Al-Hajri','yousef.tastes'],['Dana Al-Rashed','dana.brunchclub'],['Mariam Al-Shammari','mariam.dines'],['Abdullah Al-Azmi','abdullah.bites'],['Sara Al-Kandari','sara.sweettooth'],['Hessa Al-Awadhi','hessa.lifestyle'],['Khaled Al-Otaibi','khaled.grills'],
    ['Lulwa Al-Saleh','lulwa.cafehopper'],['Bader Al-Fadhli','bader.foodtrail'],['Rawan Haddad','rawan.plates'],['Omar Al-Sayegh','omar.coffeekw'],['Shaikha Al-Dosari','shaikha.daily'],['Ali Al-Qallaf','ali.eatsout'],['Maha Al-Khaldi','maha.tablefor2'],['Faisal Al-Bader','faisal.reviews'],['Reem Al-Hamad','reem.dessertdiary'],['Hamad Al-Marri','hamad.kwfood'],
@@ -735,6 +736,7 @@ function seedLived(R,ri){
   const NOTES=['Called, they had a family emergency. OK to invite again.','No reply on WhatsApp yet.',''];let fi=0;
   DB.reservations.filter(r=>r.attendance==='No-show').sort((a,b)=>b.markedAt-a.markedAt).forEach(r=>{const b=bl(r.bloggerId);if(r.markedAt<now-40*864e5||b.flag)return;b.flag={at:r.markedAt,ref:r.ref,note:NOTES[fi%3]};
     if(fi%2===0){r.warned=r.markedAt+864e5;note(b.id,'No-show warning',tpl('warning',b,resVars(r)),r.warned)}fi++});
+  [[45,'All approved bloggers',"Hi {name}! Thank you for an amazing summer of visits. New invitations are coming next week, keep an eye on WhatsApp 🙌","هلا {name}! شكراً على صيف حلو وزيارات مميزة. دعوات جديدة جاية الأسبوع الياي، تابع الواتساب 🙌"],[19,'Booked on Grill Night',"Hi {name}, quick reminder: please tag @sutis.kw in your story on the day. See you tonight!",""],[1,'All approved bloggers',"Hi {name}! Our November to December open invitation is live. Book your visits in the app.","هلا {name}! الدعوة المفتوحة لشهر نوفمبر وديسمبر صارت متاحة. احجز زياراتك من التطبيق."]].forEach(([d,to,en,ar])=>{const t=now-d*864e5;const list=to.startsWith('Booked')?DB.reservations.filter(r=>cp(r.campaignId).name==='Grill Night'&&r.status!=='Cancelled').map(r=>bl(r.bloggerId)):BL.filter(b=>canAt(b,t)&&b.status==='Approved');list.forEach(b=>note(b.id,'Message from the team',((b.lang==='ar'&&ar)?ar:en).replace(/\{name\}/g,first(b.name)),t));DB.broadcasts.push({id:uid('bc'),createdAt:t,to,count:list.length,en,ar})});
   DB.notifications.sort((a,b)=>b.createdAt-a.createdAt);
 }
 
@@ -883,7 +885,7 @@ function renderBar(){
 /* ============================================================
    ADMIN
    ============================================================ */
-const NAV=[['overview','Overview','🏠'],['bloggers','Microbloggers','🤳'],['groups','Groups','👥'],['campaigns','Campaigns','✨'],['journey','Blogger journey','📱'],['reservations','Reservations','📅'],['reports','Reports','📊'],['restaurants','Restaurants','🍽️'],['settings','Settings','⚙️']];
+const NAV=[['overview','Overview','🏠'],['bloggers','Microbloggers','🤳'],['groups','Groups','👥'],['campaigns','Campaigns','✨'],['messages','Send a message','💬'],['journey','Blogger journey','📱'],['reservations','Reservations','📅'],['reports','Reports','📊'],['restaurants','Restaurants','🍽️'],['settings','Settings','⚙️']];
 function renderAdmin(){
   const pend=DB.bloggers.filter(b=>b.status==='Pending').length;
   const page=S.page;
@@ -896,6 +898,7 @@ function renderAdmin(){
   else if(page==='campaign'){const c=cp(S.campaignId);if(!c){S.page='campaigns';return renderAdmin()}title=esc(c.name);body=pgCampaign(c)}
   else if(page==='journey'){title='📱 Blogger journey';sub='See exactly what a blogger sees, step by step, for each type of campaign';body=pgJourney()}
   else if(page==='reservations'){title='📅 Reservations';sub='All bookings across restaurants';body=pgReservations()}
+  else if(page==='messages'){title='💬 Send a message';sub='Send a WhatsApp message to all bloggers, a group, the bloggers of a campaign, or people you pick';body=pgMessages()}
   else if(page==='reports'){title='📊 Brand reports';sub='Visits, attendance and the most active bloggers, per brand and month';actions=`<button class="btn" data-action="reportCsv">⬇️ Download CSV</button>`;body=pgReports()}
   else if(page==='restaurants'){title='🍽️ Restaurants';sub=`${DB.restaurants.length} brands`;actions=`<button class="btn pri" data-action="newRestaurant">➕ Add restaurant</button>`;body=pgRestaurants()}
   else if(page==='settings'){title='⚙️ Settings';sub='Messages, rules and integrations';body=pgSettings()}
@@ -1028,6 +1031,7 @@ function pgBlogger(b){
   if(b.status==='Rejected')acts.push(`<button class="btn" data-action="approve" data-id="${b.id}">Approve instead</button>`);
   if(b.status==='Suspended')acts.push(`<button class="btn pri" data-action="reactivate" data-id="${b.id}">Reactivate</button>`);
   if(hasAccess(b))acts.push(`<button class="btn" data-action="inviteBlogger" data-id="${b.id}">✉️ Invite to a campaign</button>`);
+  if(b.status==='Approved')acts.push(`<button class="btn" data-action="msgTo" data-id="${b.id}">💬 Send a message</button>`);
   acts.push(`<button class="btn" data-action="editBlogger" data-id="${b.id}">${ic('edit',15)} Edit</button>`);
   return `<div class="card card-b" style="margin-bottom:16px"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
     <div class="avatar lg">${initials(b.name)}</div>
@@ -1213,6 +1217,7 @@ function pgCampaign(c){
   if(st==='Paused')acts.push(`<button class="btn" data-action="editCampaign" data-id="${c.id}">${ic('edit',15)} Edit</button><button class="btn pri" data-action="setCStatus" data-s="Active" data-id="${c.id}">${ic('play',15)} Resume</button><button class="btn" data-action="setCStatus" data-s="Closed" data-id="${c.id}">Close</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   if(st==='Closed')acts.push(`<button class="btn" data-action="setCStatus" data-s="Active" data-id="${c.id}">Reopen</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   acts.push(`<button class="btn" data-action="duplicateCampaign" data-id="${c.id}">⧉ Duplicate</button>`);
+  if(st!=='Draft')acts.push(`<button class="btn" data-action="msgCamp" data-id="${c.id}">💬 Message bloggers</button>`);
   if(!FRESH)acts.push(`<button class="btn" data-action="journeyFor" data-id="${c.id}">📱 See blogger view</button>`);
   const canEditCap=['Draft','Active','Paused','Closed'].includes(st);
   const delivered=inv.filter(i=>i.status==='Delivered (simulated)').length;
@@ -1327,6 +1332,35 @@ function pgReservations(){
   <select class="inp" data-select="rrest"><option value="All">All restaurants</option>${DB.restaurants.map(r=>`<option value="${r.id}" ${S.rrest===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>
   <div id="tbl">${resTable()}</div>`;
 }
+
+/* ----- Send a message ----- */
+function msgState(){return S.msg=S.msg||{to:'all',group:'',camp:'',scope:'booked',pick:[],q:'',en:'',ar:''}}
+function msgRecipients(){const m=msgState();const ok=b=>b&&b.status==='Approved';
+  if(m.to==='group')return membersOf(m.group).filter(ok);
+  if(m.to==='camp'){const c=cp(m.camp);if(!c)return [];const ids=m.scope==='invited'?invitesOf(c.id).map(i=>i.bloggerId):DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed'&&!resPast(r)).map(r=>r.bloggerId);return [...new Set(ids)].map(bl).filter(ok)}
+  if(m.to==='pick')return m.pick.map(bl).filter(ok);
+  return DB.bloggers.filter(ok)}
+function msgPickList(){const m=msgState();const q=m.q.toLowerCase();return DB.bloggers.filter(b=>b.status==='Approved'&&(!q||(b.name+' '+(igOf(b)?.username||'')).toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<label><input type="checkbox" data-mpick="${b.id}" ${m.pick.includes(b.id)?'checked':''}><span style="flex:1">${b.flag?'🚩 ':''}${esc(b.name)} <span class="muted small">@${esc(igOf(b)?.username)}</span></span>${b.lang==='ar'?'<span class="muted small">عربي</span>':''}</label>`).join('')||'<div class="empty">No matches</div>'}
+function msgSummary(){const list=msgRecipients(),ar=list.filter(b=>b.lang==='ar').length,m=msgState();
+  return `${ic('users',16)}<div><b>${list.length}</b> blogger${list.length===1?'':'s'} will get this on WhatsApp${ar?` · ${ar} in Arabic${m.ar.trim()?'':' (no Arabic text yet, so they get the English one)'}`:''}.</div>`}
+function msgPreview(){const m=msgState();const b=msgRecipients()[0]||{name:'Ahmed'};const t=(m.en||'').replace(/\{name\}/g,first(b.name));return t.trim()?esc(t):'<span class="muted">Your message will show here.</span>'}
+function pgMessages(){const m=msgState();const camps=DB.campaigns.filter(c=>c.status!=='Draft').sort((a,b)=>(b.launchedAt||0)-(a.launchedAt||0));if(!m.camp&&camps[0])m.camp=camps[0].id;if(!m.group&&DB.groups[0])m.group=DB.groups[0].id;
+  const opt=(v,l,d)=>`<label><input type="radio" name="m_to" value="${v}" ${m.to===v?'checked':''}><div><b>${l}</b><span>${d}</span></div></label>`;
+  const hist=(DB.broadcasts||[]).slice().sort((a,b)=>b.createdAt-a.createdAt);
+  return `<div class="grid3"><div class="card card-b">
+   <div class="sec-t">Who gets it</div>
+   <div class="typepick msgto">${opt('all','🌟 All approved bloggers',`${DB.bloggers.filter(b=>b.status==='Approved').length} bloggers`)}${opt('camp','✨ Bloggers of a campaign','Booked or invited')}${DB.groups.length?opt('group','👥 A group',`${DB.groups.length} group${DB.groups.length>1?'s':''}`):''}${opt('pick','☑️ Pick bloggers','Choose one or more')}</div>
+   ${m.to==='camp'?`<div class="row"><div class="field"><label>Campaign</label><select class="inp" id="m_camp" style="width:100%">${camps.map(c=>`<option value="${c.id}" ${c.id===m.camp?'selected':''}>${esc(c.name)} (${cStatus(c)})</option>`).join('')||'<option value="">No campaigns yet</option>'}</select></div><div class="field"><label>Send to</label><select class="inp" id="m_scope" style="width:100%"><option value="booked" ${m.scope==='booked'?'selected':''}>Bloggers with an upcoming booking</option><option value="invited" ${m.scope==='invited'?'selected':''}>Everyone invited</option></select></div></div>`:''}
+   ${m.to==='group'?`<div class="field"><label>Group</label><select class="inp" id="m_group" style="width:100%">${DB.groups.map(g=>`<option value="${g.id}" ${g.id===m.group?'selected':''}>${esc(g.name)} (${membersOf(g.id).length})</option>`).join('')}</select></div>`:''}
+   ${m.to==='pick'?`<div class="field"><label>Bloggers <span class="muted">${m.pick.length} picked</span></label><input class="inp" placeholder="Search name or handle…" data-msearch2 value="${esc(m.q)}" style="margin-bottom:6px"><div class="checklist" id="m_pick">${msgPickList()}</div></div>`:''}
+   <div class="notice info" id="m_sum" style="margin-bottom:16px">${msgSummary()}</div>
+   <div class="sec-t">Message</div>
+   <div class="field"><label>English</label><textarea class="inp" id="m_en" rows="6" placeholder="Hi {name}! ...">${esc(m.en)}</textarea><span class="hint">{name} becomes each blogger's first name.</span></div>
+   <details class="field"${m.ar?' open':''}><summary style="cursor:pointer;font-weight:600">🇰🇼 Arabic version (for bloggers who use Arabic)</summary><textarea class="inp" id="m_ar" dir="rtl" rows="6" style="margin-top:8px" placeholder="هلا {name}! ...">${esc(m.ar)}</textarea></details>
+   <div class="field"><label>Preview</label><div class="pre" id="m_prev" style="max-width:none">${msgPreview()}</div></div>
+   <div class="btns" style="justify-content:flex-end"><button class="btn" data-action="msgClear">Clear</button><button class="btn pri" data-action="msgSend">${ic('send',15)} Send on WhatsApp</button></div></div>
+  <div class="card" style="align-self:start"><div class="card-h"><h3>Sent messages</h3><span class="muted small">${hist.length}</span></div>
+   ${hist.map(h=>`<div class="list-item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(h.to)}</div><div class="muted small">${fmtTS(h.createdAt)} · ${h.count} blogger${h.count===1?'':'s'}</div><div class="small" style="margin-top:4px;white-space:pre-wrap;max-height:60px;overflow:hidden">${esc(h.en)}</div></div></div>`).join('')||'<div class="empty">Nothing sent yet</div>'}</div></div>`}
 
 /* ----- Brand reports ----- */
 function reportRows(m){return DB.restaurants.map(r=>{const rr=DB.reservations.filter(x=>{const i=rInfo(x);return i.rest&&i.rest.id===r.id&&monthKey(i.date)===m});
@@ -2323,6 +2357,13 @@ const A={
  rmBranch:d=>{syncRestRows();const br=M.branches[+d.i];if(DB.reservations.some(r=>r.status==='Confirmed'&&!resPast(r)&&r.branchId===br.id))return toast('This branch has upcoming bookings. Move them first.');M.branches.splice(+d.i,1);$('#brbox').innerHTML=branchRows()},
  addBlocked:()=>{syncRestRows();M.blocked.push({date:addDays(7),reason:''});$('#bkbox').innerHTML=blockedRows()},
  rmBlocked:d=>{syncRestRows();M.blocked.splice(+d.i,1);$('#bkbox').innerHTML=blockedRows()},
+ msgTo:d=>{S.msg={to:'pick',group:'',camp:'',scope:'booked',pick:[d.id],q:'',en:'',ar:''};S.page='messages';render();window.scrollTo(0,0);setTimeout(()=>$('#m_en')?.focus(),30)},
+ msgCamp:d=>{S.msg={to:'camp',group:'',camp:d.id,scope:'booked',pick:[],q:'',en:'',ar:''};S.page='messages';render();window.scrollTo(0,0)},
+ msgClear:()=>{const m=msgState();m.en='';m.ar='';m.pick=[];render()},
+ msgSend:()=>{const m=msgState();m.en=$('#m_en').value;m.ar=$('#m_ar').value;const list=msgRecipients();if(!m.en.trim())return toast('Write the message first');if(!list.length)return toast('Nobody is selected');
+   const to=m.to==='all'?'All approved bloggers':m.to==='group'?'Group: '+(DB.groups.find(g=>g.id===m.group)?.name||''):m.to==='camp'?(m.scope==='invited'?'Invited to ':'Booked on ')+(cp(m.camp)?.name||''):list.length===1?list[0].name:`${list.length} picked bloggers`;
+   confirmBox(`Send to ${list.length} blogger${list.length===1?'':'s'}?`,`<b>${esc(to)}</b><br><br>It goes on WhatsApp now.`,'Send now',()=>{list.forEach(b=>notify(b.id,'Message from the team',((b.lang==='ar'&&m.ar.trim())?m.ar:m.en).replace(/\{name\}/g,first(b.name)).trim()));
+     DB.broadcasts.push({id:uid('bc'),createdAt:Date.now(),to,count:list.length,en:m.en,ar:m.ar});S.msg=null;save();render();toast(`Message queued for ${list.length} blogger${list.length===1?'':'s'}`)},false)},
  reportMonth:d=>{S.rmonth=d.m;render()},
  reportCsv:()=>{const m=S.rmonth||iso(new Date()).slice(0,7);const rows=[['Brand','Visits booked','Attended','No-shows','Cancelled','Attendance rate','Most active bloggers']].concat(reportRows(m).map(x=>[x.r.name,x.booked,x.att,x.ns,x.canc,x.rate,x.top.map(t=>t.b.name+' ('+t.n+')').join('; ')]));
    const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');(async()=>{const fn=`brand-report-${m}.csv`;let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){}
@@ -2440,6 +2481,8 @@ document.addEventListener('submit',e=>{if(e.target.id==='regForm'){e.preventDefa
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.filter){S[t.dataset.filter]=t.value;const box=$('#tbl');if(box)box.innerHTML=t.dataset.filter==='bq'?bloggersTable():t.dataset.filter==='gq'?allGroupsTable():resTable()}
+  else if(t.hasAttribute('data-msearch2')){msgState().q=t.value;$('#m_pick').innerHTML=msgPickList()}
+  else if(t.id==='m_en'||t.id==='m_ar'){const m=msgState();m[t.id==='m_en'?'en':'ar']=t.value;if(t.id==='m_en')$('#m_prev').innerHTML=msgPreview()}
   else if(t.hasAttribute('data-msearch')){M.mq=t.value;$('#mlist').innerHTML=manualList()}
   else if(t.hasAttribute('data-amsearch')){M.q=t.value;$('#amlist').innerHTML=amList()}
   else if(t.id==='f_limit')updateAudience();
@@ -2449,6 +2492,9 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.select){S[t.dataset.select]=t.value;render()}
+  else if(t.name==='m_to'){const m=msgState();m.en=$('#m_en').value;m.ar=$('#m_ar').value;m.to=t.value;render()}
+  else if(t.id==='m_camp'||t.id==='m_scope'||t.id==='m_group'){const m=msgState();m.en=$('#m_en').value;m.ar=$('#m_ar').value;m[{m_camp:'camp',m_scope:'scope',m_group:'group'}[t.id]]=t.value;render()}
+  else if(t.dataset.mpick){const m=msgState();const id=t.dataset.mpick;m.pick=t.checked?[...m.pick,id]:m.pick.filter(x=>x!==id);$('#m_sum').innerHTML=msgSummary();$('#m_prev').innerHTML=msgPreview();const l=t.closest('.field')?.querySelector('label .muted');if(l)l.textContent=m.pick.length+' picked'}
   else if(t.dataset.addgrp){if(t.value){DB.memberships.push({groupId:t.value,bloggerId:t.dataset.addgrp});save();render();toast('Added to group')}}
   else if(t.id==='f_otype'){$('#otypebox').dataset.ot=t.value}
   else if(t.id==='f_rest'){$('#f_brwrap').innerHTML=branchSel(t.value)}

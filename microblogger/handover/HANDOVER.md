@@ -498,3 +498,20 @@ A third build of the same file shows the system after about three months of use,
   - Yesterday's "Pizza Night" is left unmarked so there is attendance to mark.
   - Bookings within the next 24 hours already have reminders sent, most with "Yes".
 - 5 red flags from recent no-shows (some with notes and warnings), 2 groups, 1 blocked date, and full message history.
+
+## 19. Send a message page (27 Nov 2026)
+
+There is a new sidebar page, **💬 Send a message**: a free WhatsApp message to everyone in one of these:
+- all approved bloggers
+- a group
+- the bloggers of a campaign (upcoming bookings, or everyone invited)
+- bloggers picked by hand (with search)
+
+How it works:
+- `{name}` becomes each blogger's first name.
+- An optional Arabic version goes to bloggers who use Arabic. Without it, they get the English text.
+- There is a live preview and a confirmation before sending.
+- The "Sent messages" history is stored in `DB.broadcasts`.
+- Shortcuts: "💬 Send a message" on a blogger's profile and "💬 Message bloggers" on a campaign.
+
+Production note: free-text WhatsApp messages can only be sent inside the 24-hour customer-service window. Outside it, broadcasts must use an approved message template (for example, one template with a `{{1}}` body variable).
