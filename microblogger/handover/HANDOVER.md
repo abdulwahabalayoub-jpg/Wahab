@@ -515,3 +515,31 @@ How it works:
 - Shortcuts: "💬 Send a message" on a blogger's profile and "💬 Message bloggers" on a campaign.
 
 Production note: free-text WhatsApp messages can only be sent inside the 24-hour customer-service window. Outside it, broadcasts must use an approved message template (for example, one template with a `{{1}}` body variable).
+
+## 20. Message types on the Send a message page (27 Nov 2026)
+
+Approved by Abdulwahab (skipped: asking for post links, extra audience filters). Pick a type first; each fills in the recipients and a starting text in English and Arabic.
+
+The 7 types:
+1. ⏰ **Visit reminder:** to bloggers with a booking tomorrow, in the next 7 days, or on one campaign. Each message carries that blogger's own restaurant, date, time, arrival rule and Maps link.
+2. ❓ **Ask a question:**
+   - Up to 4 reply buttons.
+   - Bloggers answer from a card at the top of their portal.
+   - Answer counts show in "Sent messages", and each person's answer shows in Details.
+3. ⭐ **Priority invite:**
+   - A group gets a draft or running campaign's invitation first (a draft goes live).
+   - Everyone else in the audience gets it automatically after 2/6/12/24/48 hours, as a scheduled job.
+4. 🔥 **Last-minute tables:** to invited bloggers who haven't booked a campaign that still has free tables and who are free that day. It shows the next slot and how many tables are left.
+5. 🙏 **Thank you after the visit:** to bloggers who attended a chosen campaign.
+6. 📣 **Announcement**
+7. ✏️ **Other:** any audience, free text.
+
+Extras that work with every type:
+- **Schedule for later:** runs when due, checked on every render and every 20 seconds. Scheduled messages can be cancelled or sent now.
+- **Save as a template:** loads from a dropdown and can be deleted.
+- **Delivered and read:** simulated ticks per recipient, plus a Details view per message.
+
+Production notes:
+- Each type needs an approved WhatsApp template (the question type uses quick-reply buttons; replies arrive by webhook and are stored per broadcast).
+- Delivery and read receipts come from WhatsApp status webhooks.
+- Scheduled sends and the delayed priority wave run as a background job.

@@ -417,6 +417,10 @@ tr.click:hover td{background:#fdf9ef}
 .brrow{display:grid;grid-template-columns:1fr 1.4fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
 .brrow.bk2{grid-template-columns:170px 1fr auto auto}
 .flagcard{margin-bottom:16px;border-color:#f0cdc6;background:#fffafa}.flagcard .card-h h3{color:var(--red)}
+.mtypes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.mtype{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;font:inherit}
+.mtype>span{font-size:20px}.mtype b{font-size:13.5px}.mtype small{color:var(--mute);font-size:11.5px}
+.mtype:hover{border-color:#e6cf8f}.mtype.on{border-color:var(--gold-d);background:var(--gold-bg);box-shadow:0 0 0 3px #c2941b26}
 .msgto{grid-template-columns:1fr 1fr}.msgto label{align-items:center}
 .msggrid{display:grid;grid-template-columns:260px 1fr;gap:16px}
 @media (max-width:760px){.msggrid{grid-template-columns:1fr}.brrow,.brrow.bk2{grid-template-columns:1fr auto}.brrow>input:nth-child(2){grid-column:1/2}}
@@ -603,7 +607,7 @@ function renderMsg(c,b){
 }
 function notify(bid,type,message){DB.notifications.unshift({id:uid('ntf'),bloggerId:bid,type,channel:'WhatsApp',message,createdAt:Date.now(),status:FRESH?'Queued, not sent':'Queued (demo)'})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
-function migrate(){if(!DB)return;const st=DB.settings=DB.settings||{};st.msgs=st.msgs||{};if(st.reminders===undefined)st.reminders=true;DB.waitlist=DB.waitlist||[];DB.broadcasts=DB.broadcasts||[];
+function migrate(){if(!DB)return;const st=DB.settings=DB.settings||{};st.msgs=st.msgs||{};if(st.reminders===undefined)st.reminders=true;DB.waitlist=DB.waitlist||[];DB.broadcasts=DB.broadcasts||[];DB.msgTemplates=DB.msgTemplates||[];DB.broadcasts.forEach(x=>{if(!x.status){x.status='Sent';x.sentAt=x.sentAt||x.createdAt;x.type=x.type||'other'}});
   DB.restaurants.forEach(r=>{if(!r.branches||!r.branches.length)r.branches=[{id:uid('br'),name:r.location||'Main branch',maps:r.maps||''}];r.blocked=r.blocked||[]});
   DB.bloggers.forEach(b=>{if(!b.lang)b.lang='en'})}
 function load(){try{const s=localStorage.getItem(KEY);if(s){const d=JSON.parse(s);if(d&&d.version===1)return d}}catch(e){}return null}
@@ -649,7 +653,7 @@ function seedLived(R,ri){
   const pick=a=>a[Math.floor(R()*a.length)];const chance=p=>R()<p;const now=Date.now();
   const hh=h=>String(h).padStart(2,'0')+':00';const ts=(d,t)=>at(d,t).getTime();
   const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-  ['bloggers','socials','groups','memberships','campaigns','invitations','reservations','notifications','waitlist','broadcasts'].forEach(k=>DB[k]=[]);
+  ['bloggers','socials','groups','memberships','campaigns','invitations','reservations','notifications','waitlist','broadcasts','msgTemplates'].forEach(k=>DB[k]=[]);
   DB.settings.lenient=true;DB.settings.signin='both';
   const NM=[['Ahmed Al-Ali','ahmed.eats.kw'],['Fatma Al-Mutairi','fatma.foodie'],['Noura Al-Enezi','nouraskitchen.kw'],['Yousef Al-Hajri','yousef.tastes'],['Dana Al-Rashed','dana.brunchclub'],['Mariam Al-Shammari','mariam.dines'],['Abdullah Al-Azmi','abdullah.bites'],['Sara Al-Kandari','sara.sweettooth'],['Hessa Al-Awadhi','hessa.lifestyle'],['Khaled Al-Otaibi','khaled.grills'],
    ['Lulwa Al-Saleh','lulwa.cafehopper'],['Bader Al-Fadhli','bader.foodtrail'],['Rawan Haddad','rawan.plates'],['Omar Al-Sayegh','omar.coffeekw'],['Shaikha Al-Dosari','shaikha.daily'],['Ali Al-Qallaf','ali.eatsout'],['Maha Al-Khaldi','maha.tablefor2'],['Faisal Al-Bader','faisal.reviews'],['Reem Al-Hamad','reem.dessertdiary'],['Hamad Al-Marri','hamad.kwfood'],
@@ -736,7 +740,16 @@ function seedLived(R,ri){
   const NOTES=['Called, they had a family emergency. OK to invite again.','No reply on WhatsApp yet.',''];let fi=0;
   DB.reservations.filter(r=>r.attendance==='No-show').sort((a,b)=>b.markedAt-a.markedAt).forEach(r=>{const b=bl(r.bloggerId);if(r.markedAt<now-40*864e5||b.flag)return;b.flag={at:r.markedAt,ref:r.ref,note:NOTES[fi%3]};
     if(fi%2===0){r.warned=r.markedAt+864e5;note(b.id,'No-show warning',tpl('warning',b,resVars(r)),r.warned)}fi++});
-  [[45,'All approved bloggers',"Hi {name}! Thank you for an amazing summer of visits. New invitations are coming next week, keep an eye on WhatsApp 🙌","هلا {name}! شكراً على صيف حلو وزيارات مميزة. دعوات جديدة جاية الأسبوع الياي، تابع الواتساب 🙌"],[19,'Booked on Grill Night',"Hi {name}, quick reminder: please tag @sutis.kw in your story on the day. See you tonight!",""],[1,'All approved bloggers',"Hi {name}! Our November to December open invitation is live. Book your visits in the app.","هلا {name}! الدعوة المفتوحة لشهر نوفمبر وديسمبر صارت متاحة. احجز زياراتك من التطبيق."]].forEach(([d,to,en,ar])=>{const t=now-d*864e5;const list=to.startsWith('Booked')?DB.reservations.filter(r=>cp(r.campaignId).name==='Grill Night'&&r.status!=='Cancelled').map(r=>bl(r.bloggerId)):BL.filter(b=>canAt(b,t)&&b.status==='Approved');list.forEach(b=>note(b.id,'Message from the team',((b.lang==='ar'&&ar)?ar:en).replace(/\{name\}/g,first(b.name)),t));DB.broadcasts.push({id:uid('bc'),createdAt:t,to,count:list.length,en,ar})});
+  const sendOld=(d,type,spec,list)=>{const t=now-d*864e5;list=list.map(x=>x.b?x:{b:x});list.forEach(o=>note(o.b.id,MSG_TYPES[type].label,msgTextFor(spec,o),t));const bc={id:uid('bc'),type,status:'Sent',createdAt:t,sentAt:t,to:spec.to,count:list.length,en:spec.en,ar:spec.ar,recips:list.map(o=>o.b.id),answers:{},choices:type==='question'?choicesOf(spec):null,spec};DB.broadcasts.push(bc);return bc};
+  const appr=t=>BL.filter(b=>canAt(b,now-t*864e5)&&b.status==='Approved');
+  sendOld(45,'announce',{type:'announce',to:'All approved bloggers',en:"📣 Hi {name}! Thank you for an amazing summer of visits. New invitations are coming next week, keep an eye on WhatsApp 🙌",ar:"📣 هلا {name}! شكراً على صيف حلو وزيارات مميزة. دعوات جديدة جاية الأسبوع الياي، تابع الواتساب 🙌"},appr(45));
+  sendOld(18,'thanks',Object.assign({},MSG_TYPES.thanks,{type:'thanks',to:'Attended: Grill Night'}),DB.reservations.filter(r=>cp(r.campaignId).name==='Grill Night'&&r.attendance==='Attended').map(r=>({b:bl(r.bloggerId),r})));
+  {const q=sendOld(3,'question',{type:'question',to:'All approved bloggers',en:"Hi {name}! Quick question: would you join a dessert brunch event next Friday afternoon?",ar:"هلا {name}! سؤال سريع: تقدر تحضر فعالية برانش حلويات الجمعة الياية العصر؟",choices:'Yes, No, Maybe'},appr(3));
+    q.recips.forEach((id,i)=>{const x=R();if(x<0.62)q.answers[id]=x<0.38?'Yes':x<0.5?'Maybe':'No'})}
+  sendOld(1,'announce',{type:'announce',to:'All approved bloggers',en:"📣 Hi {name}! Our November to December open invitation is live. Book your visits in the app.",ar:"📣 هلا {name}! الدعوة المفتوحة لشهر نوفمبر وديسمبر صارت متاحة. احجز زياراتك من التطبيق."},appr(1));
+  {const t=new Date(TODAY);t.setDate(t.getDate()+1);t.setHours(10,0,0,0);const spec={type:'announce',to:'all',en:"📣 Hi {name}! Danish Bakery's festive cakes are here. Invitations go out this week, stay tuned 🎄",ar:"📣 هلا {name}! كيكات العيد من Danish Bakery وصلت. الدعوات بتنرسل هالأسبوع، خلك متابع 🎄",pick:[],choices:''};
+    DB.broadcasts.push({id:uid('bc'),type:'announce',status:'Scheduled',createdAt:now-3600e3,sendAt:t.getTime(),to:'All approved bloggers',count:appr(0).length,en:spec.en,ar:spec.ar,spec})}
+  DB.msgTemplates=[{id:'tpl_1',name:'Open invitation is live',type:'announce',en:"📣 Hi {name}! This month's open invitation is live. Book your visits in the app.",ar:"📣 هلا {name}! الدعوة المفتوحة لهالشهر صارت متاحة. احجز زياراتك من التطبيق.",choices:''},{id:'tpl_2',name:'Are you free this weekend?',type:'question',en:"Hi {name}! Are you free for a visit this weekend?",ar:"هلا {name}! فاضي لزيارة هالويكند؟",choices:'Yes, No, Maybe'}];
   DB.notifications.sort((a,b)=>b.createdAt-a.createdAt);
 }
 
@@ -1334,33 +1347,102 @@ function pgReservations(){
 }
 
 /* ----- Send a message ----- */
-function msgState(){return S.msg=S.msg||{to:'all',group:'',camp:'',scope:'booked',pick:[],q:'',en:'',ar:''}}
-function msgRecipients(){const m=msgState();const ok=b=>b&&b.status==='Approved';
-  if(m.to==='group')return membersOf(m.group).filter(ok);
-  if(m.to==='camp'){const c=cp(m.camp);if(!c)return [];const ids=m.scope==='invited'?invitesOf(c.id).map(i=>i.bloggerId):DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed'&&!resPast(r)).map(r=>r.bloggerId);return [...new Set(ids)].map(bl).filter(ok)}
-  if(m.to==='pick')return m.pick.map(bl).filter(ok);
-  return DB.bloggers.filter(ok)}
+const MSG_TYPES={
+ reminder:{icon:'⏰',label:'Visit reminder',d:'Each blogger gets their own booking',ph:'{name}, {restaurant}, {date}, {time}, {arrival}, {maps}',en:"Hi {name}! A reminder of your visit to {restaurant} on {date}, {time}.\n{arrival}\nLocation: {maps}\nSee you there!",ar:"هلا {name}! تذكير بزيارتك لـ {restaurant} يوم {date}، {time}.\n{arrival}\nالموقع: {maps}\nنشوفك هناك!"},
+ question:{icon:'❓',label:'Ask a question',d:'With reply buttons',ph:'{name}',en:"Hi {name}! Quick question: ",ar:"هلا {name}! سؤال سريع: "},
+ priority:{icon:'⭐',label:'Priority invite',d:'A group gets a campaign first',ph:'{name}. The campaign invitation is added under your note.',en:"⭐ Hi {name}, you're getting early access before everyone else!",ar:"⭐ هلا {name}، الدعوة توصلك قبل الكل!"},
+ lastmin:{icon:'🔥',label:'Last-minute tables',d:'To invited bloggers who have not booked',ph:'{name}, {left}, {restaurant}, {date}, {link}',en:"🔥 Hi {name}! {left} at {restaurant} on {date}. First to book gets it: {link}",ar:"🔥 هلا {name}! {left} في {restaurant} يوم {date}. الحجز لأول واحد: {link}"},
+ thanks:{icon:'🙏',label:'Thank you after the visit',d:'To bloggers who attended',ph:'{name}, {restaurant}',en:"Hi {name}, thank you for visiting {restaurant}! 🙏 Please remember to tag the brand in your post or story.",ar:"هلا {name}، شكراً على زيارتك لـ {restaurant}! 🙏 لا تنسى تمنشن البراند في البوست أو الستوري."},
+ announce:{icon:'📣',label:'Announcement',d:'News for everyone',ph:'{name}',en:"📣 Hi {name}! ",ar:"📣 هلا {name}! "},
+ other:{icon:'✏️',label:'Other',d:'A free message',ph:'{name}',en:'',ar:''}};
+function msgState(){if(!S.msg){const t=new Date(TODAY);t.setDate(t.getDate()+1);S.msg={type:'other',to:'all',group:'',camp:'',scope:'booked',rscope:'tomorrow',pick:[],q:'',en:'',ar:'',dirty:false,choices:'Yes, No, Maybe',delay:6,when:'now',at:iso(t)+'T10:00'}}return S.msg}
+const choicesOf=m=>(m.choices||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,4);
+const msgCampOpts=m=>m.type==='lastmin'?DB.campaigns.filter(c=>!isOpen(c)&&cStatus(c)==='Active'&&remaining(c)>0&&lastSlot(c)):m.type==='thanks'?DB.campaigns.filter(c=>DB.reservations.some(r=>r.campaignId===c.id&&r.attendance==='Attended')):m.type==='priority'?DB.campaigns.filter(c=>['Draft','Active'].includes(cStatus(c))):DB.campaigns.filter(c=>c.status!=='Draft');
+function lastSlot(c){return slotsOf(c).find(sl=>at(sl.date,sl.start)>new Date()&&slotLeft(c,sl)>0)}
+function msgTargets(m){const ok=b=>b&&b.status==='Approved';
+  if(m.type==='reminder'){const from=m.rscope==='tomorrow'?addDays(1):iso(new Date()),to=m.rscope==='tomorrow'?addDays(1):addDays(7);const seen={};
+    return DB.reservations.filter(r=>r.status==='Confirmed'&&!resPast(r)&&(m.rscope==='camp'?r.campaignId===m.camp:(rInfo(r).date>=from&&rInfo(r).date<=to))).sort((x,y)=>kSort(x).localeCompare(kSort(y))).filter(r=>!seen[r.bloggerId]&&(seen[r.bloggerId]=1)).map(r=>({b:bl(r.bloggerId),r})).filter(x=>ok(x.b))}
+  if(m.type==='lastmin'){const c=cp(m.camp);const sl=c&&lastSlot(c);if(!sl)return [];return invitesOf(c.id).map(i=>bl(i.bloggerId)).filter(b=>ok(b)&&hasAccess(b)&&!DB.reservations.some(r=>r.campaignId===c.id&&r.bloggerId===b.id&&r.status!=='Cancelled')&&!dayClash(b.id,sl.date)).map(b=>({b,c,sl}))}
+  if(m.type==='thanks'){const seen={};return DB.reservations.filter(r=>r.campaignId===m.camp&&r.attendance==='Attended').filter(r=>!seen[r.bloggerId]&&(seen[r.bloggerId]=1)).map(r=>({b:bl(r.bloggerId),r})).filter(x=>ok(x.b))}
+  if(m.type==='priority'){const c=cp(m.camp);if(!c)return [];const inv=new Set(invitesOf(c.id).map(i=>i.bloggerId));return membersOf(m.group).filter(b=>ok(b)&&hasAccess(b)&&!inv.has(b.id)).map(b=>({b,c}))}
+  let list;if(m.to==='group')list=membersOf(m.group);else if(m.to==='camp'){const c=cp(m.camp);list=!c?[]:[...new Set(m.scope==='invited'?invitesOf(c.id).map(i=>i.bloggerId):DB.reservations.filter(r=>r.campaignId===c.id&&r.status==='Confirmed'&&!resPast(r)).map(r=>r.bloggerId))].map(bl)}else if(m.to==='pick')list=m.pick.map(bl);else list=DB.bloggers;
+  return list.filter(ok).map(b=>({b}))}
+function priorityLater(m){const c=cp(m.camp);if(!c)return 0;const inv=new Set(invitesOf(c.id).map(i=>i.bloggerId));const grp=new Set(membersOf(m.group).map(b=>b.id));return audience(c).filter(b=>hasAccess(b)&&!inv.has(b.id)&&!grp.has(b.id)).length}
+function msgLabel(m){const c=cp(m.camp),g=DB.groups.find(x=>x.id===m.group);
+  if(m.type==='reminder')return m.rscope==='tomorrow'?'Bookings tomorrow':m.rscope==='week'?'Bookings in the next 7 days':'Booked on '+(c?.name||'');
+  if(m.type==='lastmin')return 'Not booked yet: '+(c?.name||'');if(m.type==='thanks')return 'Attended: '+(c?.name||'');if(m.type==='priority')return `${g?.name||'Group'} first: ${c?.name||''}`;
+  return m.to==='all'?'All approved bloggers':m.to==='group'?'Group: '+(g?.name||''):m.to==='camp'?(m.scope==='invited'?'Invited to ':'Booked on ')+(c?.name||''):(m.pick.length===1?bl(m.pick[0])?.name:`${m.pick.length} picked bloggers`)}
+function msgTextFor(m,x,noButtons){const b=x.b;const prev=LANG;LANG=b.lang||'en';try{let t=(b.lang==='ar'&&(m.ar||'').trim())?m.ar:(m.en||'');const v={name:first(b.name)};
+  if(x.r)Object.assign(v,resVars(x.r)());
+  if(x.sl){const R0=rs(x.c.restaurantId);Object.assign(v,{restaurant:whereOf(R0,brOf(R0,x.c.branchId)),date:fmtD(x.sl.date)+', '+slotLabel(x.sl),left:nTables(slotLeft(x.c,x.sl)),link:SIGNIN_URL})}
+  t=t.replace(/\{(\w+)\}/g,(mm,k)=>v[k]!=null?v[k]:mm).split('\n').filter(l=>l.trim()!=='').join('\n').trim();
+  if(m.type==='question'&&!noButtons&&choicesOf(m).length)t+='\n\n'+choicesOf(m).map(c=>'[ '+c+' ]').join('  ');
+  if(m.type==='priority'&&x.c)t+='\n\n'+renderMsg(x.c,b);
+  return t}finally{LANG=prev}}
+function execBroadcast(m,bc){const list=msgTargets(m);bc=bc||{id:uid('bc'),createdAt:Date.now()};
+  Object.assign(bc,{type:m.type,to:msgLabel(m),en:m.en,ar:m.ar,choices:m.type==='question'?choicesOf(m):null,answers:bc.answers||{},sentAt:Date.now(),status:'Sent',count:list.length,recips:list.map(x=>x.b.id),camp:m.camp,spec:m});
+  list.forEach(x=>notify(x.b.id,MSG_TYPES[m.type].label,msgTextFor(m,x)));
+  if(m.type==='priority'){const c=cp(m.camp);if(c.status==='Draft'){c.status='Active';c.launchedAt=Date.now()}const g=new Set(list.map(x=>x.b.id));
+    if(!c.everyone)c.manualIds=[...new Set([...(c.manualIds||[]),...g])];
+    list.forEach(x=>DB.invitations.push({id:uid('inv'),campaignId:c.id,bloggerId:x.b.id,token:x.b.access.token,status:'Delivered (simulated)',createdAt:Date.now(),message:msgTextFor(m,x)}));
+    DB.broadcasts.push({id:uid('bc'),type:'priorityRest',status:'Scheduled',createdAt:Date.now(),sendAt:Date.now()+(+m.delay||6)*3600e3,camp:c.id,to:'Everyone else: '+c.name,en:'The campaign invitation',ar:'',count:priorityLater(m)})}
+  if(!DB.broadcasts.includes(bc))DB.broadcasts.push(bc);save();return bc}
+function runScheduled(){if(!DB||!DB.broadcasts)return false;let ch=false;
+  DB.broadcasts.filter(x=>x.status==='Scheduled'&&x.sendAt<=Date.now()).forEach(x=>{ch=true;
+    if(x.type==='priorityRest'){const c=cp(x.camp);const before=new Set(invitesOf(x.camp).map(i=>i.bloggerId));const r=c&&['Active','Paused'].includes(cStatus(c))?sendInvites(c):{created:0};
+      Object.assign(x,{status:'Sent',sentAt:Date.now(),count:r.created,recips:invitesOf(x.camp).map(i=>i.bloggerId).filter(id=>!before.has(id))})}
+    else execBroadcast(x.spec,x)});
+  if(ch)save();return ch}
+function rcpState(bc,bid){if(bc.status!=='Sent')return '';if(bc.answers&&bc.answers[bid])return 'Read';const el=Date.now()-(bc.sentAt||bc.createdAt);if(el<2000)return 'Sent';let h=7;for(const ch of bid+bc.id)h=(h*31+ch.charCodeAt(0))>>>0;const rd=h%100<72?4000+h%40000:Infinity;return el>rd?'Read':'Delivered'}
+function bcStats(bc){const st=(bc.recips||[]).map(id=>rcpState(bc,id));return {n:st.length,del:st.filter(x=>x&&x!=='Sent').length,read:st.filter(x=>x==='Read').length}}
+const tick=s=>s==='Read'?'<span style="color:#2a8bd8;font-weight:700">✓✓</span> Read':s==='Delivered'?'<span class="muted" style="font-weight:700">✓✓</span> Delivered':s==='Sent'?'<span class="muted">✓</span> Sent':'';
 function msgPickList(){const m=msgState();const q=m.q.toLowerCase();return DB.bloggers.filter(b=>b.status==='Approved'&&(!q||(b.name+' '+(igOf(b)?.username||'')).toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<label><input type="checkbox" data-mpick="${b.id}" ${m.pick.includes(b.id)?'checked':''}><span style="flex:1">${b.flag?'🚩 ':''}${esc(b.name)} <span class="muted small">@${esc(igOf(b)?.username)}</span></span>${b.lang==='ar'?'<span class="muted small">عربي</span>':''}</label>`).join('')||'<div class="empty">No matches</div>'}
-function msgSummary(){const list=msgRecipients(),ar=list.filter(b=>b.lang==='ar').length,m=msgState();
-  return `${ic('users',16)}<div><b>${list.length}</b> blogger${list.length===1?'':'s'} will get this on WhatsApp${ar?` · ${ar} in Arabic${m.ar.trim()?'':' (no Arabic text yet, so they get the English one)'}`:''}.</div>`}
-function msgPreview(){const m=msgState();const b=msgRecipients()[0]||{name:'Ahmed'};const t=(m.en||'').replace(/\{name\}/g,first(b.name));return t.trim()?esc(t):'<span class="muted">Your message will show here.</span>'}
-function pgMessages(){const m=msgState();const camps=DB.campaigns.filter(c=>c.status!=='Draft').sort((a,b)=>(b.launchedAt||0)-(a.launchedAt||0));if(!m.camp&&camps[0])m.camp=camps[0].id;if(!m.group&&DB.groups[0])m.group=DB.groups[0].id;
+function msgSummary(){const m=msgState();const list=msgTargets(m),ar=list.filter(x=>x.b.lang==='ar').length;
+  if(m.type==='priority'){const later=priorityLater(m);return `${ic('users',16)}<div><b>Now:</b> ${list.length} blogger${list.length===1?'':'s'} in the group. <b>In ${m.delay} hours:</b> ${later} other invited blogger${later===1?'':'s'}.</div>`}
+  return `${ic('users',16)}<div><b>${list.length}</b> blogger${list.length===1?'':'s'} will get this on WhatsApp${ar?` · ${ar} in Arabic${(m.ar||'').trim()?'':' (no Arabic text, so they get the English one)'}`:''}.</div>`}
+function msgPreview(){const m=msgState();const x=msgTargets(m)[0]||{b:{name:'Ahmed',lang:'en'}};let t='';try{t=msgTextFor(Object.assign({},m,{ar:''}),x)}catch(e){t=m.en}return t.trim()?esc(t):'<span class="muted">Your message will show here.</span>'}
+function msgRefresh(){const a=$('#m_sum'),b=$('#m_prev');if(a)a.innerHTML=msgSummary();if(b)b.innerHTML=msgPreview()}
+function syncMsg(){const m=msgState();if($('#m_en'))m.en=$('#m_en').value;if($('#m_ar'))m.ar=$('#m_ar').value;if($('#m_choices'))m.choices=$('#m_choices').value;if($('#m_at'))m.at=$('#m_at').value}
+function pgMessages(){const m=msgState();const camps=msgCampOpts(m).sort((a,b)=>(b.launchedAt||b.createdAt||0)-(a.launchedAt||a.createdAt||0));
+  if(['lastmin','thanks','priority'].includes(m.type)||(m.type==='reminder'&&m.rscope==='camp')||m.to==='camp'){if(!camps.find(c=>c.id===m.camp))m.camp=camps[0]?.id||''}
+  if(!m.group&&DB.groups[0])m.group=DB.groups[0].id;
+  const T0=MSG_TYPES[m.type];
   const opt=(v,l,d)=>`<label><input type="radio" name="m_to" value="${v}" ${m.to===v?'checked':''}><div><b>${l}</b><span>${d}</span></div></label>`;
-  const hist=(DB.broadcasts||[]).slice().sort((a,b)=>b.createdAt-a.createdAt);
-  return `<div class="grid3"><div class="card card-b">
-   <div class="sec-t">Who gets it</div>
-   <div class="typepick msgto">${opt('all','🌟 All approved bloggers',`${DB.bloggers.filter(b=>b.status==='Approved').length} bloggers`)}${opt('camp','✨ Bloggers of a campaign','Booked or invited')}${DB.groups.length?opt('group','👥 A group',`${DB.groups.length} group${DB.groups.length>1?'s':''}`):''}${opt('pick','☑️ Pick bloggers','Choose one or more')}</div>
-   ${m.to==='camp'?`<div class="row"><div class="field"><label>Campaign</label><select class="inp" id="m_camp" style="width:100%">${camps.map(c=>`<option value="${c.id}" ${c.id===m.camp?'selected':''}>${esc(c.name)} (${cStatus(c)})</option>`).join('')||'<option value="">No campaigns yet</option>'}</select></div><div class="field"><label>Send to</label><select class="inp" id="m_scope" style="width:100%"><option value="booked" ${m.scope==='booked'?'selected':''}>Bloggers with an upcoming booking</option><option value="invited" ${m.scope==='invited'?'selected':''}>Everyone invited</option></select></div></div>`:''}
+  const campSel=(lbl,empty)=>`<div class="field"><label>${lbl}</label><select class="inp" id="m_camp" style="width:100%">${camps.map(c=>`<option value="${c.id}" ${c.id===m.camp?'selected':''}>${esc(c.name)} (${cStatus(c)}${m.type==='lastmin'?` · ${remaining(c)} left`:''})</option>`).join('')||`<option value="">${empty}</option>`}</select></div>`;
+  let who='';
+  if(m.type==='reminder')who=`<div class="row"><div class="field"><label>Bookings</label><select class="inp" id="m_rscope" style="width:100%">${[['tomorrow','Tomorrow'],['week','Next 7 days'],['camp','One campaign']].map(([v,l])=>`<option value="${v}" ${m.rscope===v?'selected':''}>${l}</option>`).join('')}</select></div>${m.rscope==='camp'?campSel('Campaign','No campaigns'):'<div></div>'}</div>`;
+  else if(m.type==='lastmin')who=campSel('Campaign with free tables','No running campaign has free tables');
+  else if(m.type==='thanks')who=campSel('Campaign','No campaign has attended visits yet');
+  else if(m.type==='priority')who=DB.groups.length?`<div class="row">${campSel('Campaign','No draft or running campaigns')}<div class="field"><label>Group first</label><select class="inp" id="m_group" style="width:100%">${DB.groups.map(g=>`<option value="${g.id}" ${g.id===m.group?'selected':''}>${esc(g.name)} (${membersOf(g.id).length})</option>`).join('')}</select></div><div class="field"><label>Everyone else after</label><select class="inp" id="m_delay" style="width:100%">${[2,6,12,24,48].map(h=>`<option value="${h}" ${+m.delay===h?'selected':''}>${h} hours</option>`).join('')}</select></div></div>`:`<div class="notice" style="margin-bottom:14px">${ic('info',16)}<div>Create a group first (for example "Top bloggers"), then come back. <button class="btn sm" data-action="nav" data-p="groups">Go to Groups</button></div></div>`;
+  else who=`<div class="typepick msgto">${opt('all','🌟 All approved bloggers',`${DB.bloggers.filter(b=>b.status==='Approved').length} bloggers`)}${opt('camp','✨ Bloggers of a campaign','Booked or invited')}${DB.groups.length?opt('group','👥 A group',`${DB.groups.length} group${DB.groups.length>1?'s':''}`):''}${opt('pick','☑️ Pick bloggers','Choose one or more')}</div>
+   ${m.to==='camp'?`<div class="row">${campSel('Campaign','No campaigns yet')}<div class="field"><label>Send to</label><select class="inp" id="m_scope" style="width:100%"><option value="booked" ${m.scope==='booked'?'selected':''}>Bloggers with an upcoming booking</option><option value="invited" ${m.scope==='invited'?'selected':''}>Everyone invited</option></select></div></div>`:''}
    ${m.to==='group'?`<div class="field"><label>Group</label><select class="inp" id="m_group" style="width:100%">${DB.groups.map(g=>`<option value="${g.id}" ${g.id===m.group?'selected':''}>${esc(g.name)} (${membersOf(g.id).length})</option>`).join('')}</select></div>`:''}
-   ${m.to==='pick'?`<div class="field"><label>Bloggers <span class="muted">${m.pick.length} picked</span></label><input class="inp" placeholder="Search name or handle…" data-msearch2 value="${esc(m.q)}" style="margin-bottom:6px"><div class="checklist" id="m_pick">${msgPickList()}</div></div>`:''}
+   ${m.to==='pick'?`<div class="field"><label>Bloggers <span class="muted">${m.pick.length} picked</span></label><input class="inp" placeholder="Search name or handle…" data-msearch2 value="${esc(m.q)}" style="margin-bottom:6px"><div class="checklist" id="m_pick">${msgPickList()}</div></div>`:''}`;
+  const tpls=(DB.msgTemplates||[]);
+  const all=(DB.broadcasts||[]).slice();const sched=all.filter(x=>x.status==='Scheduled').sort((a,b)=>a.sendAt-b.sendAt);const sent=all.filter(x=>x.status==='Sent').sort((a,b)=>(b.sentAt||b.createdAt)-(a.sentAt||a.createdAt));
+  const icon=x=>x.type==='priorityRest'?'⭐':(MSG_TYPES[x.type]||MSG_TYPES.other).icon;
+  return `<div class="grid3"><div class="card card-b">
+   <div class="sec-t">What kind of message?</div>
+   <div class="mtypes">${Object.entries(MSG_TYPES).map(([k,t])=>`<button class="mtype ${m.type===k?'on':''}" data-action="msgType" data-t="${k}"><span>${t.icon}</span><b>${t.label}</b><small>${t.d}</small></button>`).join('')}</div>
+   <div class="sec-t" style="margin-top:18px">Who gets it</div>${who}
    <div class="notice info" id="m_sum" style="margin-bottom:16px">${msgSummary()}</div>
-   <div class="sec-t">Message</div>
-   <div class="field"><label>English</label><textarea class="inp" id="m_en" rows="6" placeholder="Hi {name}! ...">${esc(m.en)}</textarea><span class="hint">{name} becomes each blogger's first name.</span></div>
+   <div class="sec-t" style="display:flex;align-items:center;gap:8px">Message${tpls.length?`<span style="flex:1"></span><select class="inp" id="m_tpl" style="width:auto;text-transform:none;letter-spacing:0;font-weight:400"><option value="">💾 Use a saved template…</option>${tpls.map(t=>`<option value="${t.id}">${(MSG_TYPES[t.type]||MSG_TYPES.other).icon} ${esc(t.name)}</option>`).join('')}</select>`:''}</div>
+   <div class="field"><label>English</label><textarea class="inp" id="m_en" rows="6" placeholder="Hi {name}! ...">${esc(m.en)}</textarea><span class="hint">Placeholders: ${esc(T0.ph)}</span></div>
    <details class="field"${m.ar?' open':''}><summary style="cursor:pointer;font-weight:600">🇰🇼 Arabic version (for bloggers who use Arabic)</summary><textarea class="inp" id="m_ar" dir="rtl" rows="6" style="margin-top:8px" placeholder="هلا {name}! ...">${esc(m.ar)}</textarea></details>
+   ${m.type==='question'?`<div class="field"><label>Reply buttons (up to 4, separated by commas)</label><input class="inp" id="m_choices" value="${esc(m.choices)}" placeholder="Yes, No, Maybe"><span class="hint">Bloggers tap one in WhatsApp or in the app. Answers show in "Sent messages".</span></div>`:''}
    <div class="field"><label>Preview</label><div class="pre" id="m_prev" style="max-width:none">${msgPreview()}</div></div>
-   <div class="btns" style="justify-content:flex-end"><button class="btn" data-action="msgClear">Clear</button><button class="btn pri" data-action="msgSend">${ic('send',15)} Send on WhatsApp</button></div></div>
-  <div class="card" style="align-self:start"><div class="card-h"><h3>Sent messages</h3><span class="muted small">${hist.length}</span></div>
-   ${hist.map(h=>`<div class="list-item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(h.to)}</div><div class="muted small">${fmtTS(h.createdAt)} · ${h.count} blogger${h.count===1?'':'s'}</div><div class="small" style="margin-top:4px;white-space:pre-wrap;max-height:60px;overflow:hidden">${esc(h.en)}</div></div></div>`).join('')||'<div class="empty">Nothing sent yet</div>'}</div></div>`}
+   <div class="field"><label>When</label><div class="qf" style="margin:0"><button class="${m.when==='now'?'on':''}" data-action="msgWhen" data-w="now">Send now</button><button class="${m.when==='later'?'on':''}" data-action="msgWhen" data-w="later">🕑 Schedule</button>${m.when==='later'?`<input class="inp" type="datetime-local" id="m_at" value="${esc(m.at)}" style="width:auto">`:''}</div></div>
+   ${tpls.length?`<div class="small muted" style="margin:-4px 0 12px">Saved templates: ${tpls.map(t=>`<span class="chip">${esc(t.name)}<button data-action="msgTplDel" data-id="${t.id}" title="Delete template">${ic('x',12)}</button></span>`).join('')}</div>`:''}
+   <div class="btns" style="justify-content:flex-end"><button class="btn" data-action="msgClear">Clear</button><button class="btn" data-action="msgTplSave">💾 Save as template</button><button class="btn pri" data-action="msgSend">${m.when==='later'?'🕑 Schedule':`${ic('send',15)} Send on WhatsApp`}</button></div></div>
+  <div class="stack" style="align-self:start">
+  ${sched.length?`<div class="card"><div class="card-h"><h3>🕑 Scheduled</h3><span class="muted small">${sched.length}</span></div>${sched.map(x=>`<div class="list-item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-weight:600">${icon(x)} ${esc(x.to)}</div><div class="muted small">${fmtTS(x.sendAt)}${x.count?` · about ${x.count} bloggers`:''}</div><div class="small" style="margin-top:4px;white-space:pre-wrap;max-height:42px;overflow:hidden">${esc(x.en)}</div><div class="btns" style="margin-top:6px"><button class="btn sm" data-action="msgSchedNow" data-id="${x.id}">Send now</button><button class="btn sm danger" data-action="msgSchedCancel" data-id="${x.id}">Cancel</button></div></div></div>`).join('')}</div>`:''}
+  <div class="card"><div class="card-h"><h3>Sent messages</h3><span class="muted small">${sent.length}</span></div>
+   ${sent.map(x=>{const st=bcStats(x);const ans=x.choices?x.choices.map(c=>`<span class="chip">${esc(c)} · ${Object.values(x.answers||{}).filter(a=>a===c).length}</span>`).join(''):'';return `<div class="list-item click" style="align-items:flex-start" data-action="msgDetails" data-id="${x.id}"><div style="flex:1;min-width:0"><div style="font-weight:600">${icon(x)} ${esc(x.to)}</div><div class="muted small">${fmtTS(x.sentAt||x.createdAt)} · ${x.count} blogger${x.count===1?'':'s'}${st.n?` · ${st.del} delivered · <span style="color:#2a8bd8">${st.read} read</span>`:''}</div>${ans?`<div style="margin-top:4px">${ans}<span class="muted small">${Object.keys(x.answers||{}).length} answered</span></div>`:''}<div class="small" style="margin-top:4px;white-space:pre-wrap;max-height:42px;overflow:hidden">${esc(x.en)}</div></div></div>`}).join('')||'<div class="empty">Nothing sent yet</div>'}
+   <div class="muted small" style="padding:10px 18px">Delivered and read are simulated until WhatsApp is connected.</div></div></div></div>`}
+function msgDetailsModal(id){const x=DB.broadcasts.find(y=>y.id===id);const st=bcStats(x);
+  openModal({title:`${x.type==='priorityRest'?'⭐':(MSG_TYPES[x.type]||MSG_TYPES.other).icon} ${esc(x.to)}`,wide:true,body:`<div class="muted" style="margin-bottom:10px">${fmtTS(x.sentAt||x.createdAt)} · ${x.count} bloggers · ${st.del} delivered · ${st.read} read${x.choices?` · ${Object.keys(x.answers||{}).length} answered`:''}</div>
+  <div class="pre" style="max-width:none;margin-bottom:14px">${esc(x.en)}</div>
+  <div class="tbl-wrap"><table><thead><tr><th>Blogger</th><th>WhatsApp</th>${x.choices?'<th>Answer</th>':''}</tr></thead><tbody>${(x.recips||[]).map(bid=>{const b=bl(bid);if(!b)return '';return `<tr><td>${esc(b.name)}${b.lang==='ar'?' <span class="muted small">عربي</span>':''}</td><td>${tick(rcpState(x,bid))}</td>${x.choices?`<td>${x.answers&&x.answers[bid]?`<b>${esc(x.answers[bid])}</b>`:'<span class="muted">No answer yet</span>'}</td>`:''}</tr>`}).join('')||'<tr><td colspan="3" class="empty">No recipient list for this message</td></tr>'}</tbody></table></div>`,foot:'<button class="btn pri" data-action="closeModal">Done</button>'})}
 
 /* ----- Brand reports ----- */
 function reportRows(m){return DB.restaurants.map(r=>{const rr=DB.reservations.filter(x=>{const i=rInfo(x);return i.rest&&i.rest.id===r.id&&monthKey(i.date)===m});
@@ -1819,6 +1901,7 @@ const kSort=r=>{const i=rInfo(r);return i.date+i.start};
 function replyBox(r){const i=rInfo(r);if(r.status!=='Confirmed'||!r.remindedAt||r.reply||resStarted(r))return '';
   return `<div class="remind"><div class="b">⏰ ${T('Still coming to {0}?',esc(i.where))}</div><div class="small" style="margin-top:2px">${fmtDL(i.date)} · ${tLabel(i)}</div>${lateTxt(i.c)?`<div class="small" style="margin-top:4px">${esc(lateTxt(i.c))}</div>`:''}
   <div class="btns" style="margin-top:10px;flex-wrap:nowrap"><button class="pbtn" style="margin:0;flex:1" data-action="pReplyYes" data-id="${r.id}">${T("Yes, I'm coming")}</button><button class="pbtn ghost" style="margin:0;flex:1;color:${ERR}" data-action="pCancel" data-id="${r.id}">${T('Cancel')}</button></div></div>`}
+function qCards(b){return (DB.broadcasts||[]).filter(x=>x.type==='question'&&x.status==='Sent'&&(x.recips||[]).includes(b.id)&&!(x.answers||{})[b.id]&&(x.sentAt||0)>Date.now()-14*864e5).map(x=>`<div class="remind"><div class="b">❓ ${T('Question from the team')}</div><div style="margin-top:6px;white-space:pre-wrap">${esc(msgTextFor(x.spec||{type:'question',en:x.en,ar:x.ar},{b},true))}</div><div class="btns" style="margin-top:10px">${(x.choices||[]).map(c=>`<button class="pbtn" style="margin:0;flex:1;min-width:30%" data-action="pAnswer" data-id="${x.id}" data-a="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>`).join('')}
 function myWaitlist(b){return DB.waitlist.filter(w=>w.bloggerId===b.id&&['Waiting','Notified'].includes(w.status)&&at(w.date,w.slotStart)>new Date()&&cp(w.campaignId)&&cStatus(cp(w.campaignId))==='Active')}
 function wlOpenNow(w){const c=cp(w.campaignId);if(isOpen(c)){const cap=slotCap(c,w.slotStart);return !cap||dayCount(c,w.restaurantId,w.date,w.slotStart,w.branchId||brOf(rs(w.restaurantId)).id)<cap}const sl=slotsOf(c).find(x=>x.date===w.date&&x.start===w.slotStart);return sl&&slotLeft(c,sl)>0}
 function portalApp(){
@@ -1835,6 +1918,7 @@ function portalApp(){
     const cs=myInv.map(i=>cp(i.campaignId)).filter(c=>c&&['Active','Paused','Closed'].includes(cStatus(c))).sort((a,c)=>a.date.localeCompare(c.date));
     const upB=myRes.filter(r=>r.status==='Confirmed'&&!resPast(r)).length;const op=cs.find(isOpen);const left=op?Math.max(0,op.perMonth-usedInMonth(op,b.id,iso(new Date()))):null;
     body=`<div class="p-pad" style="padding-bottom:4px"><img class="brand-logo" src="${MNH_MARK}" alt="" style="width:28px;margin-bottom:14px"><div class="p-hello">${T('Hi {0}',esc(first(b.name)))} 👋</div><div class="p-sub">${cs.length?(cs.length===1?T('You have 1 invitation.'):T('You have {0} invitations.',cs.length)):T('No open invitations right now.')}${upB?' '+(upB===1?T('1 upcoming visit.'):T('{0} upcoming visits.',upB)):''}${op?' '+T('{0} open-invitation visits left this month.',left):''}</div></div>
+    ${qCards(b)}
     ${asks.map(replyBox).join('')}
     ${cs.map(c=>isOpen(c)?openCard(c,b):invCard(c,b)).join('')||`<div class="p-empty">${T("New restaurant invitations will appear here. We'll also let you know on WhatsApp.")}</div>`}`;
   }else if(tab==='book'){
@@ -1994,6 +2078,8 @@ function pResSheet(rid,justBooked){
 function T(s,...a){const t=(LANG==='ar'&&AR[s])||s;return a.length?t.replace(/\{(\d)\}/g,(m,i)=>a[i]!=null?a[i]:''):t}
 const AR={
 ' by the marketing team':' من فريق التسويق',
+'Question from the team':'سؤال من الفريق',
+'Thanks for your answer!':'شكراً على ردك!',
 '(optional)':'(اختياري)',
 '1 table left':'باقي طاولة وحدة',
 '1 upcoming visit.':'عندك زيارة وحدة قادمة.',
@@ -2246,7 +2332,7 @@ const AR={
    RENDER + EVENTS
    ============================================================ */
 function render(){
-  runReminders();
+  runReminders();runScheduled();
   LANG=S.view==='admin'?'en':(S.lang||'en');
   renderBar();
   if(S.view==='admin')renderAdmin();else if(S.view==='register')renderRegister();else renderPortal();
@@ -2357,13 +2443,23 @@ const A={
  rmBranch:d=>{syncRestRows();const br=M.branches[+d.i];if(DB.reservations.some(r=>r.status==='Confirmed'&&!resPast(r)&&r.branchId===br.id))return toast('This branch has upcoming bookings. Move them first.');M.branches.splice(+d.i,1);$('#brbox').innerHTML=branchRows()},
  addBlocked:()=>{syncRestRows();M.blocked.push({date:addDays(7),reason:''});$('#bkbox').innerHTML=blockedRows()},
  rmBlocked:d=>{syncRestRows();M.blocked.splice(+d.i,1);$('#bkbox').innerHTML=blockedRows()},
- msgTo:d=>{S.msg={to:'pick',group:'',camp:'',scope:'booked',pick:[d.id],q:'',en:'',ar:''};S.page='messages';render();window.scrollTo(0,0);setTimeout(()=>$('#m_en')?.focus(),30)},
- msgCamp:d=>{S.msg={to:'camp',group:'',camp:d.id,scope:'booked',pick:[],q:'',en:'',ar:''};S.page='messages';render();window.scrollTo(0,0)},
- msgClear:()=>{const m=msgState();m.en='';m.ar='';m.pick=[];render()},
- msgSend:()=>{const m=msgState();m.en=$('#m_en').value;m.ar=$('#m_ar').value;const list=msgRecipients();if(!m.en.trim())return toast('Write the message first');if(!list.length)return toast('Nobody is selected');
-   const to=m.to==='all'?'All approved bloggers':m.to==='group'?'Group: '+(DB.groups.find(g=>g.id===m.group)?.name||''):m.to==='camp'?(m.scope==='invited'?'Invited to ':'Booked on ')+(cp(m.camp)?.name||''):list.length===1?list[0].name:`${list.length} picked bloggers`;
-   confirmBox(`Send to ${list.length} blogger${list.length===1?'':'s'}?`,`<b>${esc(to)}</b><br><br>It goes on WhatsApp now.`,'Send now',()=>{list.forEach(b=>notify(b.id,'Message from the team',((b.lang==='ar'&&m.ar.trim())?m.ar:m.en).replace(/\{name\}/g,first(b.name)).trim()));
-     DB.broadcasts.push({id:uid('bc'),createdAt:Date.now(),to,count:list.length,en:m.en,ar:m.ar});S.msg=null;save();render();toast(`Message queued for ${list.length} blogger${list.length===1?'':'s'}`)},false)},
+ msgTo:d=>{S.msg=null;const m=msgState();Object.assign(m,{to:'pick',pick:[d.id]});S.page='messages';render();window.scrollTo(0,0);setTimeout(()=>$('#m_en')?.focus(),30)},
+ msgCamp:d=>{S.msg=null;const m=msgState();Object.assign(m,{to:'camp',camp:d.id,scope:'booked'});S.page='messages';render();window.scrollTo(0,0)},
+ msgType:d=>{syncMsg();const m=msgState();const old=MSG_TYPES[m.type];const unchanged=!m.en.trim()||(m.en===old.en&&(!m.ar||m.ar===old.ar));m.type=d.t;if(unchanged||!m.dirty){m.en=MSG_TYPES[d.t].en;m.ar=MSG_TYPES[d.t].ar;m.dirty=false}render()},
+ msgWhen:d=>{syncMsg();msgState().when=d.w;render()},
+ msgClear:()=>{const m=msgState();m.en=MSG_TYPES[m.type].en;m.ar=MSG_TYPES[m.type].ar;m.dirty=false;m.pick=[];render()},
+ msgTplSave:()=>{syncMsg();const m=msgState();if(!m.en.trim())return toast('Write the message first');openModal({title:'Save as template',body:`<div class="field"><label>Template name</label><input class="inp" id="tpl_name" placeholder="e.g. Monthly open invitation is live"></div><div class="muted small">Saves the type, the English and Arabic text${m.type==='question'?' and the reply buttons':''}.</div>`,foot:`<button class="btn" data-action="closeModal">Cancel</button><button class="btn pri" data-action="msgTplDo">Save template</button>`});setTimeout(()=>$('#tpl_name')?.focus(),30)},
+ msgTplDo:()=>{const n=$('#tpl_name').value.trim();if(!n)return toast('Give the template a name');const m=msgState();DB.msgTemplates.push({id:uid('tpl'),name:n,type:m.type,en:m.en,ar:m.ar,choices:m.choices});save();closeModal();render();toast('Template saved')},
+ msgTplDel:d=>{DB.msgTemplates=DB.msgTemplates.filter(t=>t.id!==d.id);save();render();toast('Template deleted')},
+ msgDetails:d=>msgDetailsModal(d.id),
+ msgSchedCancel:d=>{const x=DB.broadcasts.find(y=>y.id===d.id);confirmBox('Cancel this scheduled message?',esc(x.to),'Cancel message',()=>{DB.broadcasts=DB.broadcasts.filter(y=>y.id!==d.id);save();render();toast('Scheduled message cancelled')})},
+ msgSchedNow:d=>{const x=DB.broadcasts.find(y=>y.id===d.id);x.sendAt=Date.now()-1;runScheduled();render();toast('Sent')},
+ msgSend:()=>{syncMsg();const m=msgState();const list=msgTargets(m);if(!m.en.trim())return toast('Write the message first');if(m.type==='question'&&!choicesOf(m).length)return toast('Add at least one reply button');if(!list.length)return toast('Nobody matches. Change who gets it.');
+   const spec=JSON.parse(JSON.stringify(Object.assign({},m,{q:''})));const to=msgLabel(m);
+   if(m.when==='later'){const t=new Date(m.at).getTime();if(!m.at||isNaN(t)||t<=Date.now())return toast('Pick a time in the future');
+     DB.broadcasts.push({id:uid('bc'),type:m.type,status:'Scheduled',createdAt:Date.now(),sendAt:t,to,count:list.length,en:m.en,ar:m.ar,spec});S.msg=null;save();render();return toast(`Scheduled for ${fmtTS(t)}`)}
+   confirmBox(`Send to ${list.length} blogger${list.length===1?'':'s'}?`,`${MSG_TYPES[m.type].icon} <b>${esc(MSG_TYPES[m.type].label)}</b> · ${esc(to)}${m.type==='priority'?`<br><br>Everyone else invited to the campaign gets it in ${m.delay} hours.`:''}<br><br>It goes on WhatsApp now.`,'Send now',()=>{execBroadcast(spec);S.msg=null;render();toast(`Message queued for ${list.length} blogger${list.length===1?'':'s'}`)},false)},
+ pAnswer:d=>{const x=DB.broadcasts.find(y=>y.id===d.id);x.answers=x.answers||{};x.answers[S.portal.bloggerId]=d.a;save();render();toast(T('Thanks for your answer!'))},
  reportMonth:d=>{S.rmonth=d.m;render()},
  reportCsv:()=>{const m=S.rmonth||iso(new Date()).slice(0,7);const rows=[['Brand','Visits booked','Attended','No-shows','Cancelled','Attendance rate','Most active bloggers']].concat(reportRows(m).map(x=>[x.r.name,x.booked,x.att,x.ns,x.canc,x.rate,x.top.map(t=>t.b.name+' ('+t.n+')').join('; ')]));
    const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');(async()=>{const fn=`brand-report-${m}.csv`;let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){}
@@ -2482,7 +2578,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.filter){S[t.dataset.filter]=t.value;const box=$('#tbl');if(box)box.innerHTML=t.dataset.filter==='bq'?bloggersTable():t.dataset.filter==='gq'?allGroupsTable():resTable()}
   else if(t.hasAttribute('data-msearch2')){msgState().q=t.value;$('#m_pick').innerHTML=msgPickList()}
-  else if(t.id==='m_en'||t.id==='m_ar'){const m=msgState();m[t.id==='m_en'?'en':'ar']=t.value;if(t.id==='m_en')$('#m_prev').innerHTML=msgPreview()}
+  else if(t.id==='m_en'||t.id==='m_ar'||t.id==='m_choices'){const m=msgState();m[{m_en:'en',m_ar:'ar',m_choices:'choices'}[t.id]]=t.value;m.dirty=true;msgRefresh()}
   else if(t.hasAttribute('data-msearch')){M.mq=t.value;$('#mlist').innerHTML=manualList()}
   else if(t.hasAttribute('data-amsearch')){M.q=t.value;$('#amlist').innerHTML=amList()}
   else if(t.id==='f_limit')updateAudience();
@@ -2492,9 +2588,11 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.select){S[t.dataset.select]=t.value;render()}
-  else if(t.name==='m_to'){const m=msgState();m.en=$('#m_en').value;m.ar=$('#m_ar').value;m.to=t.value;render()}
-  else if(t.id==='m_camp'||t.id==='m_scope'||t.id==='m_group'){const m=msgState();m.en=$('#m_en').value;m.ar=$('#m_ar').value;m[{m_camp:'camp',m_scope:'scope',m_group:'group'}[t.id]]=t.value;render()}
-  else if(t.dataset.mpick){const m=msgState();const id=t.dataset.mpick;m.pick=t.checked?[...m.pick,id]:m.pick.filter(x=>x!==id);$('#m_sum').innerHTML=msgSummary();$('#m_prev').innerHTML=msgPreview();const l=t.closest('.field')?.querySelector('label .muted');if(l)l.textContent=m.pick.length+' picked'}
+  else if(t.name==='m_to'){syncMsg();msgState().to=t.value;render()}
+  else if(['m_camp','m_scope','m_group','m_rscope','m_delay'].includes(t.id)){syncMsg();const m=msgState();m[{m_camp:'camp',m_scope:'scope',m_group:'group',m_rscope:'rscope',m_delay:'delay'}[t.id]]=t.value;render()}
+  else if(t.id==='m_tpl'&&t.value){const tp=DB.msgTemplates.find(x=>x.id===t.value);const m=msgState();Object.assign(m,{type:tp.type,en:tp.en,ar:tp.ar,choices:tp.choices||m.choices,dirty:true});render();toast('Template loaded')}
+  else if(t.id==='m_at'){msgState().at=t.value}
+  else if(t.dataset.mpick){const m=msgState();const id=t.dataset.mpick;m.pick=t.checked?[...m.pick,id]:m.pick.filter(x=>x!==id);msgRefresh();const l=t.closest('.field')?.querySelector('label .muted');if(l)l.textContent=m.pick.length+' picked'}
   else if(t.dataset.addgrp){if(t.value){DB.memberships.push({groupId:t.value,bloggerId:t.dataset.addgrp});save();render();toast('Added to group')}}
   else if(t.id==='f_otype'){$('#otypebox').dataset.ot=t.value}
   else if(t.id==='f_rest'){$('#f_brwrap').innerHTML=branchSel(t.value)}
@@ -2525,6 +2623,7 @@ window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{DB=JSON.pa
 DB=load()||seed();migrate();DB.bloggers.forEach(b=>{if(b.nationality&&NAT_MAP[b.nationality])b.nationality=NAT_MAP[b.nationality]});save();
 const h=(location.hash||'').slice(1);if(['admin','register','portal'].includes(h))S.view=h;
 render();
+setInterval(()=>{if(runScheduled()&&!$('#modal-root').innerHTML)render()},20000);
 </script>
 </body>
 </html>
