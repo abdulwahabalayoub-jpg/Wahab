@@ -423,7 +423,8 @@ const at=(dateStr,time)=>{const d=parseD(dateStr);const[h,m]=time.split(':').map
 const initials=n=>n.split(/\s+/).filter(Boolean).map(w=>w[0]).filter(c=>/[A-Za-z]/.test(c)).slice(0,2).join('').toUpperCase();
 const first=n=>n.trim().split(/\s+/)[0];
 const NAT_MAP={"Kuwaiti": "Kuwait", "State of Kuwait": "Kuwait", "Saudi": "Saudi Arabia", "Kingdom of Saudi Arabia": "Saudi Arabia", "Emirati": "United Arab Emirates", "United Arab Emirates": "United Arab Emirates", "Bahraini": "Bahrain", "Kingdom of Bahrain": "Bahrain", "Qatari": "Qatar", "State of Qatar": "Qatar", "Omani": "Oman", "Sultanate of Oman": "Oman", "Egyptian": "Egypt", "Arab Republic of Egypt": "Egypt", "Jordanian": "Jordan", "Hashemite Kingdom of Jordan": "Jordan", "Lebanese": "Lebanon", "Lebanese Republic": "Lebanon", "Syrian": "Syria", "Syrian Arab Republic": "Syria", "Iraqi": "Iraq", "Republic of Iraq": "Iraq", "Palestinian": "Palestine", "State of Palestine": "Palestine", "Yemeni": "Yemen", "Republic of Yemen": "Yemen", "Sudanese": "Sudan", "Republic of the Sudan": "Sudan", "Moroccan": "Morocco", "Kingdom of Morocco": "Morocco", "Tunisian": "Tunisia", "Republic of Tunisia": "Tunisia", "Algerian": "Algeria", "People's Democratic Republic of Algeria": "Algeria", "Indian": "India", "Republic of India": "India", "Pakistani": "Pakistan", "Islamic Republic of Pakistan": "Pakistan", "Bangladeshi": "Bangladesh", "People's Republic of Bangladesh": "Bangladesh", "Filipino": "Philippines", "Republic of the Philippines": "Philippines", "Sri Lankan": "Sri Lanka", "Democratic Socialist Republic of Sri Lanka": "Sri Lanka", "Turkish": "Turkey", "Republic of Türkiye": "Turkey", "Iranian": "Iran", "Islamic Republic of Iran": "Iran", "British": "United Kingdom", "United Kingdom of Great Britain and Northern Ireland": "United Kingdom", "American": "United States", "United States of America": "United States", "Canadian": "Canada", "Canada": "Canada", "French": "France", "French Republic": "France", "German": "Germany", "Federal Republic of Germany": "Germany", "Italian": "Italy", "Italian Republic": "Italy"};/* old values (nationality words and official names) -> country name */
-const NATIONALITIES=["Kuwait", "Saudi Arabia", "United Arab Emirates", "Bahrain", "Qatar", "Oman", "Egypt", "Jordan", "Lebanon", "Syria", "Iraq", "Palestine", "Yemen", "Sudan", "Morocco", "Tunisia", "Algeria", "India", "Pakistan", "Bangladesh", "Philippines", "Sri Lanka", "Turkey", "Iran", "United Kingdom", "United States", "Canada", "France", "Germany", "Italy", "Other"];
+const NATIONALITIES=["Kuwait", "Saudi Arabia", "United Arab Emirates", "Bahrain", "Qatar", "Oman", "Egypt", "Jordan", "Lebanon", "Syria", "Iraq", "Palestine", "Yemen", "Sudan", "Morocco", "Tunisia", "Algeria", "India", "Pakistan", "Bangladesh", "Philippines", "Sri Lanka", "Turkey", "Iran", "United Kingdom", "United States", "Canada", "France", "Germany", "Italy"];
+const cleanCountry=v=>{v=(v||'').trim().replace(/\s+/g,' ');if(v.length<2)return '';const hit=NATIONALITIES.find(n=>n.toLowerCase()===v.toLowerCase());if(hit)return hit;return v.slice(0,60).split(' ').map((w,i)=>/^(of|the|and|de|al)$/i.test(w)&&i?w.toLowerCase():w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ')};
 const NAT_SEED=['Kuwait','Kuwait','Saudi Arabia','Kuwait','Egypt','Kuwait','Lebanon','Kuwait','Jordan','Kuwait','United Arab Emirates','Syria','Kuwait','India','Kuwait','Philippines'];
 const natOpts=sel=>NATIONALITIES.map(n=>`<option ${n===sel?'selected':''}>${n}</option>`).join('');
 const pwHash=x=>btoa(unescape(encodeURIComponent('mbms-demo:'+x)));/* demo only. Production uses real auth (Supabase). */
@@ -1217,7 +1218,7 @@ function bloggerForm(id){
   const b=bl(id);M={socials:socialsOf(id).map(s=>({...s}))};
   openModal({title:'Edit blogger',wide:true,body:`<div class="row"><div class="field"><label>Full name</label><input class="inp" id="e_name" value="${esc(b.name)}"></div>
   <div class="field" style="flex:.4"><label>Country code</label><input class="inp" id="e_cc" value="${esc(b.cc)}"></div><div class="field"><label>Phone</label><input class="inp" id="e_phone" value="${esc(b.phone)}"></div></div>
-  <div class="field" style="max-width:300px"><label>Nationality</label><select class="inp" id="e_nat" style="width:100%"><option value="">Not provided</option>${natOpts(b.nationality&&!NATIONALITIES.includes(b.nationality)?'Other':b.nationality)}</select><input class="inp" id="e_nat_other" placeholder="Write the official country name" value="${esc(b.nationality&&!NATIONALITIES.includes(b.nationality)?b.nationality:'')}" ${b.nationality&&!NATIONALITIES.includes(b.nationality)?'':'hidden'} style="margin-top:8px"></div>
+  <div class="field" style="max-width:300px"><label>Nationality</label><input class="inp" id="e_nat" list="nat_list" autocomplete="off" value="${esc(b.nationality||'')}" placeholder="Type the country"><datalist id="nat_list">${NATIONALITIES.map(n=>`<option value="${n}">`).join('')}</datalist></div>
   <div class="flabel" style="margin-bottom:8px">Social media accounts</div><div id="e_socials">${socialRows()}</div>
   <button class="btn sm" data-action="addSocialRow">${ic('plus',14)} Add platform</button>
   <div class="field" style="margin-top:14px"><label>Internal notes</label><textarea class="inp" id="e_notes">${esc(b.notes)}</textarea></div>
@@ -1327,7 +1328,7 @@ function renderRegister(){
      <div class="p-sec" style="padding:18px 0 8px">About you</div>
      <div class="field"><label>Full name</label><input class="inp" id="rg_name" autocomplete="name" placeholder="Your full name"></div>
      <div class="field"><label>Phone number (WhatsApp)</label><div style="display:flex;gap:8px"><select class="inp" id="rg_cc" style="width:96px;flex:none">${['+965','+966','+971','+973','+974','+968','+962','+961','+20','+44','+1'].map(c=>`<option>${c}</option>`).join('')}</select><input class="inp" id="rg_phone" inputmode="tel" placeholder="5000 0000"></div></div>
-     <div class="field"><label>Nationality</label><select class="inp" id="rg_nat" style="width:100%"><option value="">Select your country</option>${NATIONALITIES.map(n=>`<option>${n}</option>`).join('')}</select><input class="inp" id="rg_nat_other" placeholder="Write the official country name" hidden style="margin-top:8px"></div>
+     <div class="field"><label>Nationality</label><input class="inp" id="rg_nat" list="nat_list" autocomplete="off" placeholder="Type your country"><datalist id="nat_list">${NATIONALITIES.map(n=>`<option value="${n}">`).join('')}</datalist></div>
      <div class="p-sec" style="padding:10px 0 8px">Instagram</div>
      <div class="field"><label>Instagram username</label><input class="inp" id="rg_ig" placeholder="@yourname"></div>
      <div class="field"><label>Instagram profile URL <span class="muted" style="font-weight:400">(optional)</span></label><input class="inp" id="rg_igurl" placeholder="https://instagram.com/yourname"></div>
@@ -1355,9 +1356,8 @@ function submitRegistration(){
   const err=m=>{$('#rg_err').innerHTML=`<div class="p-err">${esc(m)}</div>`;$('#rg_err').scrollIntoView({block:'center',behavior:'smooth'})};
   if(!name)return err('Please enter your name.');
   if(phone.length<7)return err('Please enter a valid phone number.');
-  let nat=$('#rg_nat').value;
-  if(!nat)return err('Please select your country.');
-  if(nat==='Other'){nat=$('#rg_nat_other').value.trim().replace(/\s+/g,' ');if(!nat)return err('Please write the country name.')}
+  const nat=cleanCountry($('#rg_nat').value);
+  if(!nat)return err('Please type your country.');
   if(!ig)return err('Please add your Instagram username.');
   const igu=igurl?(/^https?:\/\//i.test(igurl)?igurl:'https://'+igurl.replace(/^\/+/,'')):'https://instagram.com/'+ig;
   if(DB.bloggers.some(b=>b.cc===cc&&b.phone===phone))return err('An application with this phone number already exists. Each person can have one account.');
@@ -1588,7 +1588,7 @@ const A={
  saveBlogger:d=>{syncSocialInputs();const b=bl(d.id);const name=$('#e_name').value.trim(),cc=$('#e_cc').value.trim(),phone=$('#e_phone').value.replace(/\D/g,'');
    if(!name||phone.length<7)return toast('Name and a valid phone are required');
    if(DB.bloggers.some(x=>x.id!==b.id&&x.cc===cc&&x.phone===phone))return toast('Another account already uses this phone number');
-   b.name=name;b.cc=cc;b.phone=phone;b.nationality=$('#e_nat').value==='Other'?($('#e_nat_other').value.trim()||'Other'):$('#e_nat').value;b.notes=$('#e_notes').value.trim();
+   b.name=name;b.cc=cc;b.phone=phone;b.nationality=cleanCountry($('#e_nat').value);b.notes=$('#e_notes').value.trim();
    DB.socials=DB.socials.filter(s=>s.bloggerId!==b.id).concat(M.socials.filter(s=>s.primary||s.username||s.url).map(s=>({...s,bloggerId:b.id})));
    save();closeModal();render();toast('Blogger updated')},
  addToGroupSel:d=>{const g=$('#addGroupSel').value;if(!g)return;DB.memberships.push({groupId:g,bloggerId:d.id});save();render();toast('Added to group')},
@@ -1750,7 +1750,6 @@ document.addEventListener('change',e=>{
   else if(t.name==='f_type'){syncSlots();M.type=t.value;$('#cform').dataset.type=t.value;M.slots.forEach(x=>{if(M.type==='single'){x.date=x.date||addDays(7);if(!x.cap)x.cap=5}});$('#slotbox').innerHTML=slotRows();updateSlotTotal()}
   else if(t.dataset.sc!==undefined||t.dataset.sd!==undefined){syncSlots();updateSlotTotal()}
   else if(t.dataset.rid){const id=t.dataset.rid;M.rids=t.checked?[...M.rids,id]:M.rids.filter(x=>x!==id)}
-  else if(t.id==='rg_nat'||t.id==='e_nat'){const o=$('#'+t.id+'_other');if(o){o.hidden=t.value!=='Other';if(!o.hidden)o.focus()}}
   else if(t.id==='f_everyone'){M.everyone=t.checked;updateAudience()}
   else if(t.dataset.gid){const id=t.dataset.gid;M.groupIds=t.checked?[...M.groupIds,id]:M.groupIds.filter(x=>x!==id);updateAudience()}
   else if(t.dataset.mid){const id=t.dataset.mid;M.manualIds=t.checked?[...M.manualIds,id]:M.manualIds.filter(x=>x!==id);updateAudience()}
