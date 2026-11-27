@@ -463,3 +463,25 @@ create table notifications (
 - M7: "Invite to a campaign" button on the blogger profile.
 - M8: confirmation shows arrival time, phone, "Open in Google Maps" and "Add to calendar"; the WhatsApp confirmation includes the Google Maps link. Restaurants have optional phone and Google Maps link fields.
 - S1: "Today's visits" card first on the Overview. S2: visits this week on each restaurant card. S3: upcoming visits and open-invitation visits left on the blogger's home. S6: Today / Tomorrow / This week on Reservations, grouped by restaurant.
+
+## 17. Review replies, batch 2 (done in the mock-up, 27 Nov 2026)
+
+Decisions from round 2:
+- No activity log: only Abdulwahab uses the dashboard.
+- No budget rule on bookings: who pays above the budget is agreed with each restaurant, outside the system.
+
+Built:
+1. **Approve in one click.** Approve now activates the account and sends one WhatsApp message with the sign-in link. Reactivating a suspended blogger also restores sign-in. Bulk approve does the same for each blogger.
+2. **Edit every message** (Settings > Messages). 11 messages, each in English and Arabic, with "Original wording" reset: invitation, approved, rejected, booking confirmed, 24-hour reminder, booking changed, cancelled, waitlist, no-show warning, campaign update, account activated again. Lines with an empty placeholder (for example `{late}`) are dropped.
+3. **Branches.** Each restaurant has one or more branches (name + Google Maps link). Pasting a Google Maps link into the name box moves it to the link box and fills the name when the link has one. One-restaurant campaigns pick a branch. In open invitations the blogger picks the branch, and table limits count per branch. Bookings, messages, Maps links and reports show the branch.
+4. **Blocked dates** per restaurant (date + optional reason). No campaign slots, bookings or changes on those dates. No opening hours, as agreed.
+5. **Two ways to pick a time** per campaign: a time slot (arrive any time inside it) or an exact time (scrollable times every 15/30/60 minutes inside the slot). Exact-time campaigns can add a late rule ("cancelled if 10/15/20/30+ minutes late"), shown on the card, the booking and the messages.
+6. **No-show red flag.** Marking a no-show adds a red flag, with no automatic message. The admin can send a warning (editable preview), write a note on what happened, and remove the flag. There is a "🚩 Red flag" filter in Microbloggers.
+7. **24-hour reminder.** It is sent automatically the day before, unless the booking was made in the last hour. Admins can also send it early with the Remind button. Bloggers answer "Yes, I'm coming" or "Cancel" in the portal; the admin sees ✅ or ⏳. Cancelling from the reminder is allowed even inside the cancellation window. It can be switched off in Settings > Messages.
+8. **Waitlist.** Full slots offer "Join the waitlist". When a table opens (cancel or change), everyone waiting for that slot gets a WhatsApp message and the first to book gets it. Bloggers see their waitlist in My bookings. Admins see it on the campaign's Waitlist tab.
+9. **Change my booking.** Bloggers can move to another slot, time, date or branch before the cancellation deadline. The same rules apply as for a new booking. The waitlist is told if a table opens. Admin changes use the same check.
+10. **Brand reports** (new Reports page). Per brand and month: visits booked, attended, no-shows, cancelled, attendance rate, top 3 bloggers by attended visits, and a split per branch. CSV download (the artifact declares the `downloads` capability).
+11. **Bulk actions.** Tick pending applications to approve or reject them together. In Reservations (Today / Tomorrow / This week), each slot group has "Mark all attended".
+12. **Arabic.** The sign-up page, sign-in and the whole blogger portal have an English / عربي switch (RTL layout). The blogger's choice is saved as their language, and all WhatsApp messages to them use it. Campaigns have an optional Arabic invitation. The admin side stays in English. **The Arabic wording (Kuwaiti dialect) needs a native review before going live.** It is in the `AR` dictionary and `MSG_DEF` in `mockup.html`. Verbs were kept gender-neutral where possible.
+
+Production notes: store `branch_id`, `slot_start`, `win_end`, `reminded_at`, `reply`, `changed_at`/`changed_by` on reservations. Add `branches`, `blocked_dates`, `waitlist` and `message_templates` (key, lang, body) tables, plus `bloggers.lang` and `bloggers.flag_*`. Reminders become a scheduled job (every 15 minutes) that sends a WhatsApp template with quick-reply buttons. Waitlist messages are sent from the same database transaction that frees the table.
