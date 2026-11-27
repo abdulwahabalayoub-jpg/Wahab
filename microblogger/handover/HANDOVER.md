@@ -445,3 +445,21 @@ create table notifications (
 ## 15. Decisions and open items from the 4-role review (27 Nov 2026)
 - **Guests:** the team decides how many people a blogger can bring (set per campaign: just the blogger, +1 or +2). Bloggers are not asked at booking.
 - **Open item, attendance / no-show check (revisit later):** idea from Abdulwahab: 72 hours after each visit's date and time, check Instagram to see if the blogger sent a DM, tagged or mentioned the restaurant. If nothing is found, flag the booking as "possible no-show / no content" for the team to confirm. To explore: Meta's official Instagram API on the brands' business accounts (messages, mentions and tags; story mentions only last 24 hours). No unofficial scraping. A missing post does not prove a no-show, so a person confirms before marking it.
+
+## 16. Review replies, batch 1 (done in the mock-up, 27 Nov 2026)
+- T2: one visit per blogger per day, across all campaigns and restaurants (booking, open invitations and admin changes).
+- T6 / D1: "tables" everywhere; campaign types are "One restaurant" and "Open invitation" everywhere.
+- T7: no "personal link" wording. Both versions open on phone + password sign-in. "Activate & issue link" is now "Activate account"; the profile card is "Portal access". The {link} in messages is the sign-in page.
+- D2: campaign tiles are Total tables / Booked / Tables left / Invitations sent; zero counts are hidden.
+- G1: "Save & launch" and "Launch" ask first ("Send this invitation to 13 bloggers on WhatsApp now?").
+- G2: the individual bloggers list is hidden while "All approved bloggers" is ticked.
+- G3: Duplicate button on every campaign.
+- G5: overbooking test hidden in the real-product version.
+- G6: optional reason when rejecting an application or cancelling a reservation.
+- G7: new campaigns cannot use time slots in the past; profile shows a red "no-shows" badge.
+- O9: "Arrive any time between 2 PM and 4 PM" on the booking, the confirmation and the WhatsApp confirmation.
+- M2: live message preview in the campaign form.
+- M4: optional email on sign-up (shown and editable in the admin).
+- M7: "Invite to a campaign" button on the blogger profile.
+- M8: confirmation shows arrival time, phone, "Open in Google Maps" and "Add to calendar"; the WhatsApp confirmation includes the Google Maps link. Restaurants have optional phone and Google Maps link fields.
+- S1: "Today's visits" card first on the Overview. S2: visits this week on each restaurant card. S3: upcoming visits and open-invitation visits left on the blogger's home. S6: Today / Tomorrow / This week on Reservations, grouped by restaurant.
