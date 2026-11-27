@@ -201,7 +201,8 @@ for i, a in enumerate(VO_AT, 1):
 level = np.sqrt(lp(np.mean(vo ** 2, 1), 8, 1).clip(0))
 duck = 1 - 0.55 * np.clip(level / (level.max() * 0.25 + 1e-9), 0, 1)
 duck = lp(duck, 3, 1)
-mix = music * duck[:, None] * 0.9 + sfx * 0.85 + vo * 1.0
+MUSIC_GAIN = 0.0  # Abdulwahab: no music, sound effects only
+mix = music * duck[:, None] * MUSIC_GAIN + sfx * 0.8 + vo * 1.0
 mix /= np.abs(mix).max() / 0.95
 sf.write(os.path.join(ROOT, "music.wav"), music / (np.abs(music).max() / 0.9), SR)
 sf.write(os.path.join(ROOT, "sfx.wav"), sfx / (np.abs(sfx).max() / 0.9), SR)
