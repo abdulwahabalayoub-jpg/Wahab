@@ -6,13 +6,20 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@react-three/drei": "^10.0.6",
+    "@react-three/fiber": "^9.1.2",
+    "@react-three/postprocessing": "^3.0.4",
     "@remotion/cli": "4.0.532",
     "@remotion/fonts": "4.0.532",
     "@remotion/media": "4.0.532",
+    "@remotion/three": "^4.0.532",
     "@remotion/transitions": "4.0.532",
+    "@types/three": "^0.171.0",
+    "postprocessing": "^6.37.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.532"
+    "remotion": "4.0.532",
+    "three": "^0.171.0"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.532",
