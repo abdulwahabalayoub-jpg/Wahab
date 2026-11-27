@@ -543,3 +543,7 @@ Production notes:
 - Each type needs an approved WhatsApp template (the question type uses quick-reply buttons; replies arrive by webhook and are stored per broadcast).
 - Delivery and read receipts come from WhatsApp status webhooks.
 - Scheduled sends and the delayed priority wave run as a background job.
+
+## 21. Branding note (27 Nov 2026)
+
+Abdulwahab may sell this system later. Keep the WhatsApp logo out of the product's own branding and menus (Meta trademark). It is used only on "Send on WhatsApp" buttons, to show the channel. The menu uses 💬.
