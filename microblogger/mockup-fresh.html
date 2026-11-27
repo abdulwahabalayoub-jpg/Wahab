@@ -576,7 +576,7 @@ function seed(){
     if(i===7)DB.socials.push({id:uid('soc'),bloggerId:b.id,platform:'X',username:h,url:'https://x.com/'+h});
   });
   // campaigns, invitations, reservations and messages start empty
-  if(FRESH){['bloggers','socials','memberships','groups','campaigns','invitations','reservations','notifications'].forEach(k=>DB[k]=[])}
+  if(FRESH){['bloggers','socials','memberships','groups','campaigns','invitations','reservations','notifications'].forEach(k=>DB[k]=[]);DB.settings.signin='password'}
   DB.bloggers.filter(b=>b.status==='Approved'&&b.access).slice(0,3).forEach(b=>{b.pw=pwHash('demo1234');b.pwDemo=true});
   return DB;
 }
@@ -1329,8 +1329,8 @@ function renderRegister(){
       <p style="color:#6f675d;margin:10px 0 0">Thank you, ${esc(first(R.doneName))}. Our marketing team will review your application.</p>
       <div class="steps">
         <div><span>1</span><div><b>We review your profile</b><small>Usually within a few days</small></div></div>
-        <div><span>2</span><div><b>You get a personal link on WhatsApp</b><small>Only if your application is approved</small></div></div>
-        <div><span>3</span><div><b>Verify your number and book</b><small>Choose your restaurant visits</small></div></div>
+        <div><span>2</span><div><b>${FRESH?'You get a WhatsApp message':'You get a personal link on WhatsApp'}</b><small>Only if your application is approved</small></div></div>
+        <div><span>3</span><div><b>${FRESH?'Sign in with your phone number':'Verify your number and book'}</b><small>${FRESH?'The first time, confirm a code and create your password':'Choose your restaurant visits'}</small></div></div>
       </div>
       ${FRESH?`<button class="btn sm ghost" style="margin-top:14px;width:100%" data-action="regAgain">Submit another application</button>`:`<div class="p-demo" style="text-align:left"><b>For your presentation:</b> the application is now waiting in the admin dashboard as <b>Pending</b>.
         <button class="pbtn" style="margin-top:10px" data-action="regToAdmin">Review it in the admin dashboard</button>
@@ -1393,13 +1393,14 @@ function submitRegistration(){
    ============================================================ */
 function portalBlogger(){return S.portal.bloggerId?bl(S.portal.bloggerId):null}
 function authBlogger(){
-  const P=S.portal;const cc=($('#pv_cc')?.value||'+965').trim(),ph=($('#pv_phone')?.value||'').replace(/\D/g,'');
+  const P=S.portal;const cc=($('#pv_cc')?.value||'+965').trim(),ph=($('#pv_phone')?.value||'').replace(/\D/g,'');P.phoneDraft=ph;
   if(P.general){const b=DB.bloggers.find(x=>x.cc===cc&&x.phone===ph);if(!b||!hasAccess(b)){P.err="We couldn't find an active account for this number. Check the number, or ask the marketing team for your link.";render();return null}P.bloggerId=b.id;P.token=b.access.token;return b}
   const b=portalBlogger();
   if((FRESH||ph!=='')&&(cc!==b.cc||ph!==b.phone)){P.err="This number doesn't match the account this link belongs to. Personal links only work for the person they were sent to.";render();return null}
   return b;
 }
 function renderPortal(){
+  if(FRESH&&S.portal.step==='link')S.portal={step:'phone',general:true,err:S.portal.err||''};/* the finished product opens on the phone + password sign-in */
   const P=S.portal;
   let inner='';
   if(P.step==='link'){
@@ -1416,12 +1417,12 @@ function renderPortal(){
     const b=portalBlogger();const mode=signinMode();const tab=P.tab||(mode==='code'||(b&&!b.pw)?'code':'pw');
     const tabs=mode==='both'?`<div class="ptabs"><button class="${tab==='pw'?'on':''}" data-action="pTabSet" data-t="pw">🔑 Password</button><button class="${tab==='code'?'on':''}" data-action="pTabSet" data-t="code">📱 Code</button></div>`:'';
     const noPw=b&&!b.pw;
-    inner=`<div class="p-pad" style="padding-top:44px"><button class="crumb" data-action="pBack">${ic('back',14)} Back</button>
+    inner=`<div class="p-pad" style="padding-top:44px">${FRESH&&P.general?`<img class="brand-logo" src="${MNH_FULL}" alt="MNH Al-Hajery" style="width:150px">`:`<button class="crumb" data-action="pBack">${ic('back',14)} Back</button>`}
     <div class="success-ic" style="margin:18px 0 0;background:#f1ebe2;color:#1f2328">${tab==='pw'?'🔑':ic('shield',28)}</div>
     <div class="p-hello" style="margin-top:16px">${tab==='pw'?'Welcome back':"Verify it's you"}</div>
     <div class="p-sub">${tab==='pw'?'Sign in with your phone number and password.':"Enter the phone number you registered with. We'll send a one-time code to it."}</div>
     ${tabs?`<div style="margin-top:18px">${tabs}</div>`:''}
-    <div style="display:flex;gap:8px;margin-top:20px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" placeholder="${P.general||FRESH?'Phone number':'Phone number (demo: leave empty)'}"></div>
+    <div style="display:flex;gap:8px;margin-top:20px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" value="${esc(P.phoneDraft||'')}" placeholder="${P.general||FRESH?'Phone number':'Phone number (demo: leave empty)'}"></div>
     ${tab==='pw'?`<input class="pinp" id="pv_pw" type="password" placeholder="Password" style="margin-top:10px">`:''}
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     ${tab==='pw'?`<button class="pbtn" data-action="pPwLogin">Sign in</button>
@@ -1713,7 +1714,7 @@ const A={
    DB.settings.otpSent=(DB.settings.otpSent||0)+1;
    S.portal.otp=String(100000+Math.floor(Math.random()*900000));S.portal.tries=0;S.portal.step='otp';S.portal.err='';S.portal.phoneShown=`${b.cc} •••• ${b.phone.slice(-2)}`;save();render();setTimeout(()=>$('#po_code')?.focus(),30)},
  pPwLogin:()=>{const b=authBlogger();if(!b)return;const P=S.portal;
-   if(!b.pw){P.err='You have no password yet. Use "Get a code" for your first sign-in, then set one.';return render()}
+   if(!b.pw){P.err="You don't have a password yet. We'll send a code to confirm your number, then you create one.";P.tab='code';return render()}
    const pw=$('#pv_pw').value;
    if(pwHash(pw)!==b.pw){P.pwTries=(P.pwTries||0)+1;if(P.pwTries>=5){P.tab='code';P.pwTries=0;P.err='Too many wrong passwords. Please sign in with a code instead.';return render()}P.err=`Wrong password. ${5-P.pwTries} attempts left.`;return render()}
    b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
