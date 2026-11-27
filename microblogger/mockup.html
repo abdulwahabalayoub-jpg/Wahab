@@ -391,6 +391,8 @@ tr.click:hover td{background:#fdf9ef}
 .gs-row.cur .gs-n{background:var(--gold-d);color:#fff}.gs-row.done .gs-n{background:var(--green-bg);color:var(--green)}
 .gs-t{flex:1;min-width:0}.gs-row.done .gs-t b{text-decoration:line-through;color:var(--mute)}
 .p-note{background:#fff6dc;border:1px solid #efdca3;color:#6b5418;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:12px}
+.grid3>*,.grid2>*{min-width:0}
+.list-item .pill{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -771,14 +773,19 @@ function filteredBloggers(){
     return hay.includes(q);
   }).sort((a,b)=>b.createdAt-a.createdAt);
 }
+function nextVisitCell(b){
+  const r=resOf(b.id).filter(x=>x.status==='Confirmed'&&!resPast(x)).sort((x,y)=>(rInfo(x).date+rInfo(x).start).localeCompare(rInfo(y).date+rInfo(y).start))[0];
+  if(!r)return '<span class="muted">—</span>';
+  const i=rInfo(r);return `${fmtD(i.date)}<div class="muted small">${esc(i.rest.name)} · ${fmtT(i.start)}</div>`;
+}
 function bloggersTable(){
   const list=filteredBloggers();
-  return `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>System username</th><th>Phone</th><th>Nationality</th><th>Instagram</th><th>Other platforms</th><th>Registered</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>
+  return `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>System username</th><th>Phone</th><th>Nationality</th><th>Instagram</th><th>Other platforms</th><th>Registered</th><th>Next visit</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>
   ${list.map(b=>{const ig=igOf(b);const other=socialsOf(b.id).filter(s=>s.platform!=='Instagram');return `<tr class="click" data-action="openBlogger" data-id="${b.id}">
   <td><div class="who"><div class="avatar">${initials(b.name)}</div><div><div class="n">${esc(b.name)}</div><div class="muted small mono">${b.accountId}</div></div></div></td>
   <td class="mono">${esc(b.username)}</td><td style="white-space:nowrap">${esc(b.cc)} ${esc(b.phone)}</td><td>${esc(b.nationality||'—')}</td><td>@${esc(ig?.username)}</td>
   <td>${other.map(s=>`<span class="chip">${esc(s.platform)}</span>`).join('')||'<span class="muted">—</span>'}</td>
-  <td style="white-space:nowrap">${fmtTSd(b.createdAt)}</td><td>${pill(b.status)}</td><td>${b.status==='Approved'||b.access?pill(accessLabel(b)):'<span class="muted">—</span>'}</td>
+  <td style="white-space:nowrap">${fmtTSd(b.createdAt)}</td><td style="white-space:nowrap">${nextVisitCell(b)}</td><td>${pill(b.status)}</td><td>${b.status==='Approved'||b.access?pill(accessLabel(b)):'<span class="muted">—</span>'}</td>
   <td>${b.status==='Pending'?`<div class="btns" style="flex-wrap:nowrap"><button class="btn sm" data-action="approve" data-id="${b.id}">${ic('check',14)} Approve</button><button class="btn sm danger" data-action="reject" data-id="${b.id}">Reject</button></div>`:''}</td></tr>`}).join('')||'<tr><td colspan="9" class="empty">No bloggers match these filters</td></tr>'}
   </tbody></table></div></div><div class="muted small" style="margin-top:8px">${list.length} shown</div>`;
 }
@@ -796,6 +803,11 @@ function pgBlogger(b){
   const res=resOf(b.id).sort((x,y)=>rInfo(y).date.localeCompare(rInfo(x).date));
   const att=res.filter(r=>r.attendance==='Attended').length,ns=res.filter(r=>r.attendance==='No-show').length,canc=res.filter(r=>r.status==='Cancelled').length;
   const marked=att+ns;
+  const kk=r=>{const i=rInfo(r);return i.date+i.start};
+  const up=res.filter(r=>r.status==='Confirmed'&&!resPast(r)).sort((x,y)=>kk(x).localeCompare(kk(y)));
+  const hist=res.filter(r=>!up.includes(r));
+  const waiting=DB.invitations.filter(i=>i.bloggerId===b.id).map(i=>cp(i.campaignId)).filter(c=>c&&cStatus(c)==='Active'&&(isOpen(c)||!res.some(r=>r.campaignId===c.id&&r.status!=='Cancelled')));
+  const dayChip=d=>{const n=Math.round((parseD(d)-parseD(iso(new Date())))/864e5);return n<=0?'Today':n===1?'Tomorrow':`In ${n} days`};
   const grps=groupsOf(b.id);
   const msgs=DB.notifications.filter(n=>n.bloggerId===b.id).slice(0,8);
   let acts=[];
@@ -814,9 +826,13 @@ function pgBlogger(b){
     <div class="btns">${acts.join('')}</div></div></div>
   <div class="grid3">
    <div class="stack">
-    <div class="card"><div class="card-h"><h3>Reservation history</h3><span class="muted small">${res.length} total</span></div>
+    <div class="card"><div class="card-h"><h3>📅 Upcoming visits</h3><span class="muted small">${up.length} coming up</span></div>
+     ${up.map(r=>{const i=rInfo(r),c=i.c;const ex=offerLines(c).filter(l=>!l.startsWith('Choose')&&!l.startsWith('Up to'));return `<div class="list-item click" data-action="openCampaign" data-id="${c.id}"><img class="thumb" src="${restThumb(i.rest)}" alt=""><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(i.rest.name)} · ${fmtDL(i.date)}</div><div class="muted small">${tLabel(i)} · ${esc(c.name)} · <span class="mono">${r.ref}</span></div>${ex.length?`<div class="small" style="margin-top:3px;color:var(--gold-dd)">${ex.map(esc).join(' · ')}</div>`:''}</div><span class="pill p-amber" style="flex:none">${dayChip(i.date)}</span></div>`}).join('')||'<div class="empty">No upcoming visits yet</div>'}
+     ${waiting.length?`<div style="padding:12px 18px;background:#fcf8ee;border-top:1px solid var(--line2)"><div class="small muted" style="margin-bottom:6px">Invited, can still book</div>${waiting.map(c=>`<span class="chip" style="cursor:pointer" data-action="openCampaign" data-id="${c.id}">${esc(c.name)}</span>`).join('')}</div>`:''}
+    </div>
+    <div class="card"><div class="card-h"><h3>History</h3><span class="muted small">${hist.length} past or cancelled</span></div>
      <div class="tbl-wrap"><table><thead><tr><th>Restaurant</th><th>Campaign</th><th>Visit date</th><th>Reference</th><th>Reservation</th><th>Attendance</th></tr></thead><tbody>
-     ${res.map(r=>{const i=rInfo(r),c=i.c;return `<tr class="click" data-action="openCampaign" data-id="${c.id}"><td>${esc(i.rest.name)}</td><td>${esc(c.name)}</td><td style="white-space:nowrap">${fmtD(i.date)}</td><td class="mono">${r.ref}</td><td>${pill(r.status)}</td><td>${pill(r.attendance)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No reservations yet</td></tr>'}
+     ${hist.map(r=>{const i=rInfo(r),c=i.c;return `<tr class="click" data-action="openCampaign" data-id="${c.id}"><td>${esc(i.rest.name)}</td><td>${esc(c.name)}</td><td style="white-space:nowrap">${fmtD(i.date)}</td><td class="mono">${r.ref}</td><td>${pill(r.status)}</td><td>${pill(r.attendance)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No past visits yet</td></tr>'}
      </tbody></table></div></div>
     <div class="card"><div class="card-h"><h3>Attendance history</h3></div><div class="card-b"><div class="stats" style="margin:0">
      <div><div class="muted small">Attended</div><div class="b" style="font-size:18px">${att}</div></div>
