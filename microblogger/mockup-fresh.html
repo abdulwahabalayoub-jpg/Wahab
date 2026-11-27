@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Microblogger Fresh Workspace</title>
+<title>Microblogger Management System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
 <style>
@@ -544,7 +544,7 @@ function renderMsg(c,b){
   const rn=isOpen(c)?'our restaurants':(rs(c.restaurantId)?.name||'');
   return (c.message||DB.settings.template).replace(/\{name\}/g,first(b.name)).replace(/\{restaurant\}/g,rn).replace(/\{date\}/g,cDateLabel(c)).replace(/\{time\}/g,cTimeLabel(c)).replace(/\{link\}/g,linkOf(b)||'[personal link]').replace(/\{offer\}/g,()=>{const o=offerLines(c);return o.length?'Your visit includes:\n'+o.map(l=>'• '+l).join('\n')+'\n\n':''}).replace(/\n{3,}/g,'\n\n');
 }
-function notify(bid,type,message){DB.notifications.unshift({id:uid('ntf'),bloggerId:bid,type,channel:'WhatsApp',message,createdAt:Date.now(),status:'Queued (demo)'})}
+function notify(bid,type,message){DB.notifications.unshift({id:uid('ntf'),bloggerId:bid,type,channel:'WhatsApp',message,createdAt:Date.now(),status:FRESH?'Queued, not sent':'Queued (demo)'})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
 function load(){try{const s=localStorage.getItem(KEY);if(s){const d=JSON.parse(s);if(d&&d.version===1)return d}}catch(e){}return null}
 
@@ -652,7 +652,7 @@ bq:'',bstatus:'All',baccess:'All',bgroup:'All',rq:'',rstatus:'All',rrest:'All',r
 portal:{step:'link'},reg:{done:false,extra:[]}};
 let M={}; // modal scratch
 
-const PILL={Pending:'amber',Approved:'green',Rejected:'red',Suspended:'grey',Active:'green',Draft:'grey',Paused:'amber',Closed:'blue',Cancelled:'red',Completed:'blue',Confirmed:'green','No-show':'red',Attended:'green','Not marked':'grey','Delivered (simulated)':'green','Sent (simulated)':'blue',Prepared:'grey','Queued (demo)':'amber',Inactive:'grey',Revoked:'red','Not issued':'grey','Link active':'green'};
+const PILL={'Queued, not sent':'grey',Pending:'amber',Approved:'green',Rejected:'red',Suspended:'grey',Active:'green',Draft:'grey',Paused:'amber',Closed:'blue',Cancelled:'red',Completed:'blue',Confirmed:'green','No-show':'red',Attended:'green','Not marked':'grey','Delivered (simulated)':'green','Sent (simulated)':'blue',Prepared:'grey','Queued (demo)':'amber',Inactive:'grey',Revoked:'red','Not issued':'grey','Link active':'green'};
 const pill=s=>`<span class="pill p-${PILL[s]||'grey'}">${esc(s)}</span>`;
 const accessLabel=b=>!b.access?'Not issued':b.access.revoked?'Revoked':'Link active';
 
@@ -668,9 +668,9 @@ function confirmBox(title,text,okLabel,fn,danger=true){CONFIRM_FN=fn;openModal({
 
 /* ---------- top demo bar ---------- */
 function renderBar(){
-  $('#demobar').innerHTML=`<span class="demo-tag">DEMO PROTOTYPE</span>
+  $('#demobar').innerHTML=`${FRESH?'':'<span class="demo-tag">DEMO PROTOTYPE</span>'}
   <div class="seg">${[['admin','Admin dashboard'],['register','Registration page'],['portal','Blogger portal']].map(([v,l])=>`<button class="${S.view===v?'on':''}" data-action="view" data-v="${v}">${l}</button>`).join('')}</div>
-  <span class="demobar-note">${FRESH?'Fresh workspace':'Sample data'} · WhatsApp &amp; OTP are simulated, nothing is actually sent</span>`;
+  <span class="demobar-note">${FRESH?'WhatsApp messages and codes are not connected yet. They are simulated and nothing is actually sent.':'Sample data · WhatsApp &amp; OTP are simulated, nothing is actually sent'}</span>`;
 }
 
 /* ============================================================
@@ -696,8 +696,8 @@ function renderAdmin(){
   $('#app').innerHTML=`<div class="admin ${S.side?'collapsed':''}">
   <aside class="side">
     <div class="brand"><img class="brand-logo" src="${MNH_MARK}" alt="MNH Al-Hajery" style="width:30px;flex:none"><div class="brand-txt"><div class="brand-t">Al-Hajery</div><div class="brand-s">Microblogger Management</div></div></div>
-    ${NAV.map(([k,l,i])=>`<button class="nav ${activeNav===k?'on':''}" data-action="nav" data-p="${k}" title="${l}"><span class="em">${i}</span><span class="lbl">${l}</span>${k==='bloggers'&&pend?`<span class="cnt">${pend}</span>`:''}</button>`).join('')}
-    <div class="side-card lbl"><div class="sc-t">📱 See the blogger side</div><div class="sc-s">Try the sign-up page the way a blogger sees it.</div><button class="btn pri" data-action="view" data-v="register">Open sign-up page →</button></div>
+    ${NAV.filter(x=>!(FRESH&&x[0]==='journey')).map(([k,l,i])=>`<button class="nav ${activeNav===k?'on':''}" data-action="nav" data-p="${k}" title="${l}"><span class="em">${i}</span><span class="lbl">${l}</span>${k==='bloggers'&&pend?`<span class="cnt">${pend}</span>`:''}</button>`).join('')}
+    ${FRESH?'':`<div class="side-card lbl"><div class="sc-t">📱 See the blogger side</div><div class="sc-s">Try the sign-up page the way a blogger sees it.</div><button class="btn pri" data-action="view" data-v="register">Open sign-up page →</button></div>`}
     <div class="side-foot"><button class="nav" data-action="toggleSide" title="Collapse sidebar"><span class="em">↔️</span><span class="lbl">Collapse</span></button></div>
   </aside>
   <main class="main">
@@ -717,12 +717,12 @@ function pgOverview(){
   const hr=new Date().getHours(),greet=hr<12?'Good morning':hr<18?'Good afternoon':'Good evening';
   const pend=B.filter(b=>b.status==='Pending').length,upN=upV.length,actC=DB.campaigns.filter(c=>cStatus(c)==='Active').length;
   const low=DB.campaigns.filter(c=>cStatus(c)==='Active'&&!isOpen(c)&&!campEnded(c)&&taken(c.id)<c.capacity/2).sort((a,b)=>a.date.localeCompare(b.date))[0];
-  const tip=!B.length?{e:'👋',t:'Welcome! Your workspace is empty',d:'Start by signing up as a test blogger. Then come back here to approve yourself.',b:'Open sign-up page →',a:'view',x:'data-v="register"'}
+  const tip=!B.length&&!FRESH?{e:'👋',t:'Welcome! Your workspace is empty',d:'Start by signing up as a test blogger. Then come back here to approve yourself.',b:'Open sign-up page →',a:'view',x:'data-v="register"'}
     :pend?{e:'📬',t:`${pend} application${pend>1?'s are':' is'} waiting for your review`,d:'Approve a blogger and you can send their personal link straight away.',b:'Review now →',a:'reviewPending',x:''}
     :low?{e:'💡',t:`${esc(cRestName(low))} still has ${remaining(low)} spots open`,d:`${esc(low.name)} on ${cDateLabel(low)} is less than half booked. You can invite more bloggers.`,b:'Open campaign →',a:'openCampaign',x:`data-id="${low.id}"`}
     :{e:'💡',t:'Everything is up to date',d:'No applications are waiting. Create a new invitation when you are ready.',b:'New invitation →',a:'newCampaign',x:''};
   return `<div class="hero"><div><h1 class="greet">${greet}, Marketing Team 👋</h1><p class="greet-s">${upN?`${upN} blogger visit${upN>1?'s are':' is'} coming up`:'No visits are booked yet'}, and ${actC} campaign${actC===1?' is':'s are'} open for booking.</p></div><div class="hero-date">${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div></div>
-  ${(()=>{const acc=B.find(hasAccess);const steps=[
+  ${FRESH?'':(()=>{const acc=B.find(hasAccess);const steps=[
     ['Sign up as a test blogger','Open the sign-up page and fill it in, the way a blogger would.',B.length>0,'data-action="view" data-v="register"','Open sign-up page'],
     ['Approve the blogger and issue their link','Open the blogger in Microbloggers, approve, then "Activate & issue link".',B.some(hasAccess),'data-action="nav" data-p="bloggers"','Go to Microbloggers'],
     ['Create and launch a campaign','Pick a restaurant, set the tables, and invite.',DB.campaigns.some(c=>c.status!=='Draft'),'data-action="newCampaignT" data-t="single"','Create a campaign'],
@@ -834,7 +834,7 @@ function pgBlogger(b){
      ${b.access?`<div class="linkbox"><span class="mono">${esc(linkOf(b))}</span><button class="btn sm" data-action="copyLink" data-id="${b.id}">Copy</button></div>
      <div class="muted small" style="margin-top:8px">Issued ${fmtTSd(b.access.issuedAt)}${b.access.revoked?` · Revoked ${fmtTSd(b.access.revokedAt)}`:''}${b.lastLogin?` · Last login ${fmtTSd(b.lastLogin)}`:''}</div>
      <div class="muted small" style="margin-top:6px">${ic('shield',13)} Opening this link still requires OTP verification of ${esc(b.cc)} •••• ${esc(b.phone.slice(-2))}.</div>
-     <div class="btns" style="margin-top:12px">${hasAccess(b)?`<button class="btn sm" data-action="openPortalAs" data-id="${b.id}">Open portal as blogger (demo)</button><button class="btn sm danger" data-action="revoke" data-id="${b.id}">Revoke access</button>`:''}${b.access.revoked&&b.status==='Approved'?`<button class="btn sm" data-action="issueAccess" data-id="${b.id}">Issue new link</button>`:''}</div>`
+     <div class="btns" style="margin-top:12px">${hasAccess(b)?`${FRESH?'':`<button class="btn sm" data-action="openPortalAs" data-id="${b.id}">Open portal as blogger (demo)</button>`}<button class="btn sm danger" data-action="revoke" data-id="${b.id}">Revoke access</button>`:''}${b.access.revoked&&b.status==='Approved'?`<button class="btn sm" data-action="issueAccess" data-id="${b.id}">Issue new link</button>`:''}</div>`
      :`<div class="muted small">${b.status==='Approved'?'Approved, but no personal link issued yet. Activate the account to send a personal access link.':'A personal access link can be issued once the application is approved.'}</div>`}
     </div></div>
     ${DB.groups.length||grps.length?`<div class="card"><div class="card-h"><h3>Groups</h3></div><div class="card-b">
@@ -980,7 +980,7 @@ function pgCampaign(c){
   if(st==='Active')acts.push(`<button class="btn" data-action="editCampaign" data-id="${c.id}">${ic('edit',15)} Edit</button><button class="btn" data-action="setCStatus" data-s="Paused" data-id="${c.id}">${ic('pause',15)} Pause</button><button class="btn" data-action="setCStatus" data-s="Closed" data-id="${c.id}">Close</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   if(st==='Paused')acts.push(`<button class="btn" data-action="editCampaign" data-id="${c.id}">${ic('edit',15)} Edit</button><button class="btn pri" data-action="setCStatus" data-s="Active" data-id="${c.id}">${ic('play',15)} Resume</button><button class="btn" data-action="setCStatus" data-s="Closed" data-id="${c.id}">Close</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
   if(st==='Closed')acts.push(`<button class="btn" data-action="setCStatus" data-s="Active" data-id="${c.id}">Reopen</button><button class="btn danger" data-action="cancelCampaign" data-id="${c.id}">Cancel</button>`);
-  acts.push(`<button class="btn" data-action="journeyFor" data-id="${c.id}">📱 See blogger view</button>`);
+  if(!FRESH)acts.push(`<button class="btn" data-action="journeyFor" data-id="${c.id}">📱 See blogger view</button>`);
   const canEditCap=['Draft','Active','Paused','Closed'].includes(st);
   const delivered=inv.filter(i=>i.status==='Delivered (simulated)').length;
   const tab=S.ctab;
@@ -1114,7 +1114,7 @@ function pgSettings(){
   const TABLES=[['administrators','id, name, email, role'],['bloggers','id, account_id UNIQUE, username UNIQUE, full_name, phone_cc, phone UNIQUE, status, access_token UNIQUE, access_revoked, created_at'],['social_accounts','id, blogger_id → bloggers, platform, username, profile_url, is_primary'],['blogger_groups','id, name, description'],['blogger_group_memberships','group_id, blogger_id, PRIMARY KEY (group_id, blogger_id)'],['restaurants','id, name, description, location, image_url, is_active'],['campaigns','id, restaurant_id, name, visit_date, start_time, end_time, capacity, invite_limit, status, cancel_hours, message_template'],['campaign_invitations','id, campaign_id, blogger_id, token UNIQUE, delivery_status, sent_at, UNIQUE (campaign_id, blogger_id)'],['reservations','id, reference UNIQUE, campaign_id, blogger_id, status, booked_at, cancelled_at, UNIQUE (campaign_id, blogger_id) WHERE status <> cancelled'],['notifications','id, blogger_id, type, channel, body, status, provider_message_id, created_at'],['attendance_records','id, reservation_id UNIQUE, status, marked_by, marked_at']];
   let body='';
   if(T==='out'){
-    body=`<div class="notice" style="margin-bottom:12px">${ic('info',16)}<div>Messages below are <b>queued in demo mode only</b>. Nothing has been sent to WhatsApp. Once the WhatsApp Business Platform is connected, this outbox becomes the send queue.</div></div>
+    body=`<div class="notice" style="margin-bottom:12px">${ic('info',16)}<div>${FRESH?'Messages below are <b>queued, not sent</b>. The WhatsApp Business Platform is not connected yet, so nothing has been sent.':'Messages below are <b>queued in demo mode only</b>. Nothing has been sent to WhatsApp.'} Once the WhatsApp Business Platform is connected, this outbox becomes the send queue.</div></div>
     <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Created</th><th>Recipient</th><th>Type</th><th>Message</th><th>Channel</th><th>Status</th></tr></thead><tbody>
     ${DB.notifications.slice(0,60).map(n=>{const b=bl(n.bloggerId);return `<tr><td style="white-space:nowrap">${fmtTS(n.createdAt)}</td><td>${esc(b?.name)}</td><td style="white-space:nowrap">${esc(n.type)}</td><td class="small muted" style="max-width:360px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n.message.replace(/\n+/g,' '))}</div></td><td>${n.channel}</td><td>${pill(n.status)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No messages yet</td></tr>'}
     </tbody></table></div></div>`;
@@ -1122,15 +1122,15 @@ function pgSettings(){
     body=`<div class="grid2"><div class="card card-b"><div class="field"><label>Default invitation message</label><textarea class="inp" id="set_tpl" rows="12">${esc(DB.settings.template)}</textarea><span class="hint">Placeholders: {name}, {restaurant}, {date}, {time}, {offer}, {link}</span></div>
     <div class="field"><label>Default cancellation window (hours before visit)</label><input class="inp" id="set_hours" type="number" min="0" value="${DB.settings.cancelHours}" style="max-width:160px"></div>
     <button class="btn pri" data-action="saveSettings">Save settings</button></div>
-    <div class="card card-b"><div class="sec-t">Automated messages (planned)</div>${['Application approval','Application rejection','Personal account access','Campaign invitation','Booking confirmation','Booking cancellation','Visit reminder (24h before)','Campaign updates'].map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line2)"><span>${x}</span>${pill('Queued (demo)')}</div>`).join('')}</div></div>`;
+    <div class="card card-b"><div class="sec-t">Automated messages (planned)</div>${['Application approval','Application rejection','Personal account access','Campaign invitation','Booking confirmation','Booking cancellation','Visit reminder (24h before)','Campaign updates'].map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line2)"><span>${x}</span>${pill(FRESH?'Queued, not sent':'Queued (demo)')}</div>`).join('')}</div></div>`;
   }else if(T==='signin'){
     body=signinPage();
   }else if(T==='int'){
     body=`<div class="grid2">
     <div class="card card-b"><div style="display:flex;justify-content:space-between;align-items:center"><span class="b">WhatsApp Business Platform</span>${pill('Not connected')}</div><p class="muted" style="margin:8px 0 0">Official Cloud API for invitations, OTP codes, confirmations and reminders. Requires a verified business number and approved message templates. No unofficial automation is used.</p></div>
-    <div class="card card-b"><div style="display:flex;justify-content:space-between;align-items:center"><span class="b">Phone OTP verification</span>${pill('Not connected')}</div><p class="muted" style="margin:8px 0 0">In this demo the code is shown on screen. In production it is delivered by WhatsApp or SMS (e.g. Supabase Auth phone login).</p></div>
+    <div class="card card-b"><div style="display:flex;justify-content:space-between;align-items:center"><span class="b">Phone OTP verification</span>${pill('Not connected')}</div><p class="muted" style="margin:8px 0 0">${FRESH?'Until this is connected, the code is shown on screen. Once connected, it is delivered by WhatsApp or SMS.':'In this demo the code is shown on screen. In production it is delivered by WhatsApp or SMS (e.g. Supabase Auth phone login).'}</p></div>
     <div class="card card-b"><div style="display:flex;justify-content:space-between;align-items:center"><span class="b">Database &amp; auth</span>${pill('Not connected')}</div><p class="muted" style="margin:8px 0 0">Planned: Supabase (Postgres + Row Level Security). Bloggers can read only their own rows; admins manage all.</p></div>
-    <div class="card card-b"><div class="b">Demo data</div><p class="muted" style="margin:8px 0 12px">Changes are saved in this browser only. Reset to restore the original sample data.</p><button class="btn danger" data-action="resetDemo">Reset demo data</button></div></div>`;
+    <div class="card card-b"><div class="b">${FRESH?'Workspace data':'Demo data'}</div><p class="muted" style="margin:8px 0 12px">${FRESH?'Everything you create is saved in this browser only. Erase it to start again with an empty workspace.':'Changes are saved in this browser only. Reset to restore the original sample data.'}</p><button class="btn danger" data-action="resetDemo">${FRESH?'Erase everything':'Reset demo data'}</button></div></div>`;
   }else{
     body=`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Table</th><th>Key columns &amp; constraints</th></tr></thead><tbody>${TABLES.map(t=>`<tr><td class="mono" style="white-space:nowrap">${t[0]}</td><td class="mono muted">${t[1]}</td></tr>`).join('')}</tbody></table></div></div>
     <div class="notice info" style="margin-top:12px">${ic('shield',16)}<div>Access rules: admins have full access. A blogger session can only read its own blogger row, social accounts, invitations and reservations. Bookings go through one server-side function that locks the campaign row, checks capacity and inserts in a single transaction, so two people can never take the same last spot.</div></div>`;
@@ -1332,10 +1332,10 @@ function renderRegister(){
         <div><span>2</span><div><b>You get a personal link on WhatsApp</b><small>Only if your application is approved</small></div></div>
         <div><span>3</span><div><b>Verify your number and book</b><small>Choose your restaurant visits</small></div></div>
       </div>
-      <div class="p-demo" style="text-align:left"><b>For your presentation:</b> the application is now waiting in the admin dashboard as <b>Pending</b>.
+      ${FRESH?`<button class="btn sm ghost" style="margin-top:14px;width:100%" data-action="regAgain">Submit another application</button>`:`<div class="p-demo" style="text-align:left"><b>For your presentation:</b> the application is now waiting in the admin dashboard as <b>Pending</b>.
         <button class="pbtn" style="margin-top:10px" data-action="regToAdmin">Review it in the admin dashboard</button>
         <button class="pbtn ghost" style="margin-top:8px" data-action="regFastApprove">Or skip: approve &amp; send link instantly</button>
-        <button class="btn sm ghost" style="margin-top:6px;width:100%" data-action="regAgain">Submit another application</button></div></div>`;
+        <button class="btn sm ghost" style="margin-top:6px;width:100%" data-action="regAgain">Submit another application</button></div>`}</div>`;
     }
   }else{
     inner=`<div class="p-pad" style="padding-top:34px"><img class="brand-logo" src="${MNH_FULL}" alt="MNH Al-Hajery" style="width:150px">
@@ -1396,7 +1396,7 @@ function authBlogger(){
   const P=S.portal;const cc=($('#pv_cc')?.value||'+965').trim(),ph=($('#pv_phone')?.value||'').replace(/\D/g,'');
   if(P.general){const b=DB.bloggers.find(x=>x.cc===cc&&x.phone===ph);if(!b||!hasAccess(b)){P.err="We couldn't find an active account for this number. Check the number, or ask the marketing team for your link.";render();return null}P.bloggerId=b.id;P.token=b.access.token;return b}
   const b=portalBlogger();
-  if(ph!==''&&(cc!==b.cc||ph!==b.phone)){P.err="This number doesn't match the account this link belongs to. Personal links only work for the person they were sent to.";render();return null}
+  if((FRESH||ph!=='')&&(cc!==b.cc||ph!==b.phone)){P.err="This number doesn't match the account this link belongs to. Personal links only work for the person they were sent to.";render();return null}
   return b;
 }
 function renderPortal(){
@@ -1406,12 +1406,12 @@ function renderPortal(){
     const demo=DB.bloggers.filter(b=>b.access).sort((a,b)=>(a.access.revoked-b.access.revoked)||a.name.localeCompare(b.name));
     inner=`<div class="p-pad" style="padding-top:44px"><img class="brand-logo" src="${MNH_FULL}" alt="MNH Al-Hajery" style="width:170px">
     <div class="p-hello" style="margin-top:20px">Your invitations</div><div class="p-sub">Open the personal link we sent you on WhatsApp.</div>
-    <div style="margin-top:22px"><input class="pinp" id="pl_link" placeholder="Paste your personal link, or just press Continue (demo)" value="${esc(P.prefill||'')}"></div>
+    <div style="margin-top:22px"><input class="pinp" id="pl_link" placeholder="${FRESH?'Paste your personal link':'Paste your personal link, or just press Continue (demo)'}" value="${esc(P.prefill||'')}"></div>
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     <button class="pbtn" data-action="pOpenLink">Continue</button>
     <p class="small" style="text-align:center;margin:14px 0 0;color:#776f65">Lost your link? <button class="btn ghost sm" style="color:var(--gold-d);font-weight:600" data-action="pGeneral">Sign in with your phone number</button></p>
     <p class="small" style="text-align:center;margin:4px 0 0;color:#776f65">New blogger? <button class="btn ghost sm" style="color:var(--gold-d);font-weight:600" data-action="view" data-v="register">Apply here</button></p>
-    <div class="p-demo"><b>Demo:</b> pick a blogger's personal link to simulate them opening it from WhatsApp.<div class="demo-list" style="max-height:260px;overflow:auto;margin-top:6px">${demo.map(b=>`<button data-action="pDemoLink" data-id="${b.id}"><div class="avatar" style="width:30px;height:30px;font-size:11px">${initials(b.name)}</div><span style="flex:1">${esc(b.name)}</span>${b.access.revoked||b.status!=='Approved'?`<span class="small" style="color:#9b3526">${b.status==='Suspended'?'Suspended':'Revoked'}</span>`:''}</button>`).join('')}</div></div></div>`;
+    ${FRESH?'':`<div class="p-demo"><b>Demo:</b> pick a blogger's personal link to simulate them opening it from WhatsApp.<div class="demo-list" style="max-height:260px;overflow:auto;margin-top:6px">${demo.map(b=>`<button data-action="pDemoLink" data-id="${b.id}"><div class="avatar" style="width:30px;height:30px;font-size:11px">${initials(b.name)}</div><span style="flex:1">${esc(b.name)}</span>${b.access.revoked||b.status!=='Approved'?`<span class="small" style="color:#9b3526">${b.status==='Suspended'?'Suspended':'Revoked'}</span>`:''}</button>`).join('')}</div></div>`}</div>`;
   }else if(P.step==='phone'){
     const b=portalBlogger();const mode=signinMode();const tab=P.tab||(mode==='code'||(b&&!b.pw)?'code':'pw');
     const tabs=mode==='both'?`<div class="ptabs"><button class="${tab==='pw'?'on':''}" data-action="pTabSet" data-t="pw">🔑 Password</button><button class="${tab==='code'?'on':''}" data-action="pTabSet" data-t="code">📱 Code</button></div>`:'';
@@ -1421,20 +1421,20 @@ function renderPortal(){
     <div class="p-hello" style="margin-top:16px">${tab==='pw'?'Welcome back':"Verify it's you"}</div>
     <div class="p-sub">${tab==='pw'?'Sign in with your phone number and password.':"Enter the phone number you registered with. We'll send a one-time code to it."}</div>
     ${tabs?`<div style="margin-top:18px">${tabs}</div>`:''}
-    <div style="display:flex;gap:8px;margin-top:20px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" placeholder="${P.general?'Phone number':'Phone number (demo: leave empty)'}"></div>
+    <div style="display:flex;gap:8px;margin-top:20px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" placeholder="${P.general||FRESH?'Phone number':'Phone number (demo: leave empty)'}"></div>
     ${tab==='pw'?`<input class="pinp" id="pv_pw" type="password" placeholder="Password" style="margin-top:10px">`:''}
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     ${tab==='pw'?`<button class="pbtn" data-action="pPwLogin">Sign in</button>
     <p class="small" style="text-align:center;margin:12px 0 0;color:#776f65">First time, or forgot your password? <button class="btn ghost sm" style="color:var(--gold-d);font-weight:600" data-action="pTabSet" data-t="code">Get a code</button></p>`:`<button class="pbtn" data-action="pSendOtp">Send code</button>
     ${mode==='password'?`<p class="small" style="text-align:center;margin:12px 0 0;color:#776f65">A code is only needed the first time and to reset your password.</p>`:''}`}
-    <div class="p-demo"><b>Demo:</b> ${b?`this link belongs to ${esc(b.name)} (${esc(b.cc)} •••• ${esc(b.phone.slice(-2))}). Anyone else who opens it is stopped here.${b.pwDemo?` Demo password: <b class="mono">demo1234</b>.`:noPw?' No password yet, so the first sign-in uses a code.':''}`:'sign in by phone number, without the link. Demo accounts with a password are listed below.'} <button class="btn sm" style="margin-top:6px" data-action="pFillPhone">Fill the registered number</button>${b&&b.pwDemo?` <button class="btn sm" style="margin-top:6px" data-action="pFillPw">Fill the password</button>`:''}${P.general?`<div class="demo-list" style="margin-top:8px">${DB.bloggers.filter(x=>x.pwDemo&&hasAccess(x)).map(x=>`<button data-action="pFillDemoPhone" data-id="${x.id}"><div class="avatar" style="width:30px;height:30px;font-size:11px">${initials(x.name)}</div><span style="flex:1">${esc(x.name)} · has a password</span></button>`).join('')}</div>`:''}</div></div>`;
+    ${FRESH?'':`<div class="p-demo"><b>Demo:</b> ${b?`this link belongs to ${esc(b.name)} (${esc(b.cc)} •••• ${esc(b.phone.slice(-2))}). Anyone else who opens it is stopped here.${b.pwDemo?` Demo password: <b class="mono">demo1234</b>.`:noPw?' No password yet, so the first sign-in uses a code.':''}`:'sign in by phone number, without the link. Demo accounts with a password are listed below.'} <button class="btn sm" style="margin-top:6px" data-action="pFillPhone">Fill the registered number</button>${b&&b.pwDemo?` <button class="btn sm" style="margin-top:6px" data-action="pFillPw">Fill the password</button>`:''}${P.general?`<div class="demo-list" style="margin-top:8px">${DB.bloggers.filter(x=>x.pwDemo&&hasAccess(x)).map(x=>`<button data-action="pFillDemoPhone" data-id="${x.id}"><div class="avatar" style="width:30px;height:30px;font-size:11px">${initials(x.name)}</div><span style="flex:1">${esc(x.name)} · has a password</span></button>`).join('')}</div>`:''}</div>`}</div>`;
   }else if(P.step==='otp'){
     inner=`<div class="p-pad" style="padding-top:44px"><button class="crumb" data-action="pBackPhone">${ic('back',14)} Back</button>
     <div class="p-hello" style="margin-top:18px">Enter your code</div><div class="p-sub">We sent a 6-digit code to ${esc(P.phoneShown)}.</div>
-    <input class="pinp otp" id="po_code" inputmode="numeric" maxlength="6" placeholder="Leave empty in the demo" style="margin-top:22px">
+    <input class="pinp otp" id="po_code" inputmode="numeric" maxlength="6" placeholder="${FRESH?'6-digit code':'Leave empty in the demo'}" style="margin-top:22px">
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     <button class="pbtn" data-action="pVerify">Verify &amp; continue</button>
-    <div class="p-demo"><b>Demo mode:</b> WhatsApp/SMS is not connected, so no code was actually sent. Your code is <b class="mono" style="font-size:14px">${P.otp}</b></div></div>`;
+    ${FRESH?`<div class="p-demo">WhatsApp and SMS are not connected yet, so your code is shown here: <b class="mono" style="font-size:14px">${P.otp}</b></div>`:`<div class="p-demo"><b>Demo mode:</b> WhatsApp/SMS is not connected, so no code was actually sent. Your code is <b class="mono" style="font-size:14px">${P.otp}</b></div>`}</div>`;
   }else if(P.step==='setpw'){
     const mode=signinMode();
     inner=`<div class="p-pad" style="padding-top:44px"><div class="success-ic" style="margin:18px 0 0;background:#e6f1ea;color:#2f7d4f">✓</div>
@@ -1443,7 +1443,7 @@ function renderPortal(){
     ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
     <button class="pbtn" data-action="pSavePw">Save password &amp; continue</button>
     ${mode==='both'?`<button class="pbtn ghost" data-action="pSkipPw">Skip for now</button>`:''}
-    <div class="p-demo"><b>Demo:</b> type any password of 8 or more characters, for example <b class="mono">demo1234</b>.</div></div>`;
+    ${FRESH?'':`<div class="p-demo"><b>Demo:</b> type any password of 8 or more characters, for example <b class="mono">demo1234</b>.</div>`}</div>`;
   }else{
     inner=portalApp();
   }
@@ -1595,7 +1595,7 @@ const A={
  suspend:d=>{const b=bl(d.id);confirmBox('Suspend account?',`${esc(b.name)} will not be able to log in or book. Their personal link stops working until reactivated. Existing reservations are kept.`,'Suspend',()=>{b.status='Suspended';if(b.access&&!b.access.revoked){b.access.revoked=true;b.access.revokedAt=Date.now()}DB.memberships=DB.memberships.filter(m=>m.bloggerId!==b.id);save();render();toast('Account suspended')})},
  reactivate:d=>{const b=bl(d.id);b.status='Approved';save();render();toast('Reactivated. Issue a new personal link to restore access.')},
  issueAccess:d=>{const b=bl(d.id);b.access={token:mkToken(),issuedAt:Date.now(),revoked:false,revokedAt:null};notify(b.id,'Personal account access',`Hi ${first(b.name)}, welcome to our microblogger program! Here is your personal invitation page: ${linkOf(b)}\nThis link is for you only and is verified with your phone number.`);let n=0;DB.campaigns.filter(c=>cStatus(c)==='Active'&&audience(c).some(x=>x.id===b.id)&&!DB.invitations.some(i=>i.campaignId===c.id&&i.bloggerId===b.id)).forEach(c=>{inviteOne(c,b);n++});
-   save();render();toast(`Account activated. Access message queued (demo, not sent).${n?` Invited to ${n} running campaign${n>1?'s':''}.`:''}`)},
+   save();render();toast(`Account activated. Access message queued, not sent.${n?` Invited to ${n} running campaign${n>1?'s':''}.`:''}`)},
  revoke:d=>{const b=bl(d.id);confirmBox('Revoke access?',`${esc(b.name)}'s personal link will stop working immediately. You can issue a new link later.`,'Revoke',()=>{b.access.revoked=true;b.access.revokedAt=Date.now();save();render();toast('Access revoked')})},
  copyLink:d=>{const t=linkOf(bl(d.id));(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Link copied'),()=>toast('Copy not available here'))},
  openPortalAs:d=>{const b=bl(d.id);S.portal={step:'phone',bloggerId:b.id,token:b.access.token};go('portal')},
@@ -1683,7 +1683,7 @@ const A={
    save();closeModal();render();toast('Restaurant saved')},
  toggleRest:d=>{const r=rs(d.id);r.active=!r.active;save();render();toast(r.active?'Restaurant activated':'Restaurant deactivated. It can no longer be used for new campaigns.')},
  saveSettings:()=>{DB.settings.template=$('#set_tpl').value;DB.settings.cancelHours=Math.max(0,parseInt($('#set_hours').value)||0);save();toast('Settings saved')},
- resetDemo:()=>confirmBox('Reset demo data?','All changes made in this browser will be lost and the original sample data restored.','Reset',()=>{seed();save();S.portal={step:'link'};S.page='overview';render();toast('Demo data reset')}),
+ resetDemo:()=>confirmBox(FRESH?'Erase everything?':'Reset demo data?',FRESH?'All bloggers, campaigns and bookings in this browser will be erased and the workspace starts empty.':'All changes made in this browser will be lost and the original sample data restored.',FRESH?'Erase':'Reset',()=>{seed();save();S.portal={step:'link'};S.page='overview';render();toast('Demo data reset')}),
  // registration
  regAddPlatform:()=>{syncReg();S.reg.extra.push({platform:'TikTok',username:'',url:''});$('#rg_extra').innerHTML=regExtraRows()},
  regRmPlatform:d=>{syncReg();S.reg.extra.splice(+d.i,1);$('#rg_extra').innerHTML=regExtraRows()},
@@ -1695,7 +1695,7 @@ const A={
  // portal
  pDemoLink:d=>{const b=bl(d.id);S.portal={step:'link',prefill:linkOf(b)};render()},
  pOpenLink:()=>{const v=$('#pl_link').value.trim();
-   if(!v){const d0=DB.bloggers.find(x=>x.access&&!x.access.revoked&&x.status==='Approved');if(d0){S.portal={step:'phone',bloggerId:d0.id,token:d0.access.token};return render()}S.portal={step:'link',err:'No blogger has a personal link yet. In the admin, approve a blogger and issue their link first.'};return render()}
+   if(!v&&!FRESH){const d0=DB.bloggers.find(x=>x.access&&!x.access.revoked&&x.status==='Approved');if(d0){S.portal={step:'phone',bloggerId:d0.id,token:d0.access.token};return render()}S.portal={step:'link',err:'No blogger has a personal link yet. In the admin, approve a blogger and issue their link first.'};return render()}
    const tok=(v.split('/p/')[1]||v).split(/[?#\s]/)[0];
    const b=DB.bloggers.find(x=>x.access&&x.access.token===tok);
    if(!tok||!b){S.portal={step:'link',prefill:v,err:"This link isn't valid. Please use the personal link we sent you on WhatsApp."};return render()}
@@ -1724,7 +1724,7 @@ const A={
  pSkipPw:()=>{const b=portalBlogger();b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
  setSignin:d=>{DB.settings.signin=d.m;save();render();toast('Blogger sign-in updated')},
  pVerify:()=>{const P=S.portal;const v=$('#po_code').value.trim();
-   if(v!==''&&v!==P.otp){P.tries=(P.tries||0)+1;if(P.tries>=5){S.portal={step:'link',err:'Too many attempts. Please open your link again.'};return render()}P.err=`Incorrect code. ${5-P.tries} attempts left.`;return render()}
+   if((FRESH||v!=='')&&v!==P.otp){P.tries=(P.tries||0)+1;if(P.tries>=5){S.portal={step:'link',err:'Too many attempts. Please open your link again.'};return render()}P.err=`Incorrect code. ${5-P.tries} attempts left.`;return render()}
    const b=portalBlogger();if(signinMode()!=='code'&&!b.pw){S.portal={step:'setpw',bloggerId:b.id,token:S.portal.token};return render()}b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
  pTab:d=>{S.portal.tab=d.t;S.portal.openC=null;render();window.scrollTo(0,0)},
  pReserve:d=>pReserveSheet(d.id),
