@@ -485,3 +485,16 @@ Built:
 12. **Arabic.** The sign-up page, sign-in and the whole blogger portal have an English / عربي switch (RTL layout). The blogger's choice is saved as their language, and all WhatsApp messages to them use it. Campaigns have an optional Arabic invitation. The admin side stays in English. **The Arabic wording (Kuwaiti dialect) needs a native review before going live.** It is in the `AR` dictionary and `MSG_DEF` in `mockup.html`. Verbs were kept gender-neutral where possible.
 
 Production notes: store `branch_id`, `slot_start`, `win_end`, `reminded_at`, `reply`, `changed_at`/`changed_by` on reservations. Add `branches`, `blocked_dates`, `waitlist` and `message_templates` (key, lang, body) tables, plus `bloggers.lang` and `bloggers.flag_*`. Reminders become a scheduled job (every 15 minutes) that sends a WhatsApp template with quick-reply buttons. Waitlist messages are sent from the same database transaction that frees the table.
+
+## 18. Lived-in sample build (27 Nov 2026)
+
+A third build of the same file shows the system after about three months of use, for presentations. It is `microblogger/mockup-lived.html` (`const LIVED=true;`, storage key `mbms-lived-v1`) and is built with `sed 's/^const LIVED=false;/const LIVED=true;/' mockup.html > mockup-lived.html`. `seedLived()` generates the data, with dates relative to today so it always looks current:
+- 60 bloggers: 49 approved, 7 pending (last few days), 3 rejected with reasons, 1 suspended, and some who use Arabic.
+- 19 campaigns:
+  - 9 finished one-restaurant campaigns and 2 finished monthly open invitations.
+  - 1 campaign today and 1 current open invitation.
+  - Upcoming: 1 fully booked with 3 on the waitlist, 1 with exact times, 1 partly booked, 1 paused, 1 closed and 1 draft.
+- About 200 bookings: attended, no-shows, cancelled and upcoming.
+  - Yesterday's "Pizza Night" is left unmarked so there is attendance to mark.
+  - Bookings within the next 24 hours already have reminders sent, most with "Yes".
+- 5 red flags from recent no-shows (some with notes and warnings), 2 groups, 1 blocked date, and full message history.
