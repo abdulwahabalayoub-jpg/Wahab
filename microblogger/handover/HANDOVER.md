@@ -547,3 +547,7 @@ Production notes:
 ## 21. Branding note (27 Nov 2026)
 
 Abdulwahab may sell this system later. Keep the WhatsApp logo out of the product's own branding and menus (Meta trademark). It is used only on "Send on WhatsApp" buttons, to show the channel. The menu uses 📢.
+
+## 22. Published links (27 Nov 2026)
+
+Only the lived-in dashboard is published now: https://claude.ai/artifact/1rZPF6RcCmo13XySsgcWrL (built from `mockup-lived.html`). The empty and sample-data links were deleted at Abdulwahab's request. Their source files (`mockup-fresh.html`, `mockup.html`) remain in the repo and can be published again under new links.
