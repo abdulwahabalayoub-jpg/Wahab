@@ -1154,7 +1154,7 @@ function campaignForm(id,preType){
   <div class="typepick"><label><input type="radio" name="f_type" value="single" ${T==='single'?'checked':''}><div><b>Single restaurant visit</b><span>One restaurant, one or more dates and time slots, with tables for each.</span></div></label>
   <label><input type="radio" name="f_type" value="open" ${T==='open'?'checked':''}><div><b>Open invitation</b><span>Bloggers choose the restaurant, date and time themselves, with a monthly limit.</span></div></label></div>`}
   <div class="sec-t">Campaign information</div>
-  <div class="row"><div class="field"><label>Campaign name</label><input class="inp" id="f_name" value="${esc(d.name)}" placeholder="e.g. Autumn Menu Tasting"></div>
+  <div class="row"><div class="field"><label>Campaign name <span class="muted" style="font-weight:400">(optional)</span></label><input class="inp" id="f_name" value="${esc(d.name)}" placeholder="e.g. Autumn Menu Tasting, or leave empty"></div>
   <div class="field only-single"><label>Restaurant</label><select class="inp" id="f_rest" style="width:100%">${actRest.map(r=>`<option value="${r.id}" ${r.id===d.restaurantId?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div></div>
   <div class="only-open">
    <div class="field"><label>Restaurants bloggers can choose from <button type="button" class="btn ghost sm" data-action="ridsAll">Select all</button><button type="button" class="btn ghost sm" data-action="ridsNone">Clear</button></label><div id="ridbox">${ridChecks(actRest)}</div></div>
@@ -1206,10 +1206,14 @@ function updateAudience(){
   const lim=parseInt($('#f_limit')?.value)||0;
   el.innerHTML=`${ic('users',16)}<div><b>${aud.length}</b> approved bloggers selected · <b>${lim?Math.min(lim,withLink):withLink}</b> will receive an invitation${aud.length-withLink?` · ${aud.length-withLink} skipped (no active personal link)`:''}.</div>`;
 }
+function autoCampaignName(o){
+  if(o.type==='open')return o.startDate&&monthKey(o.startDate)===monthKey(o.endDate)?`Open invitation · ${monthName(o.startDate).split(' ')[0]}`:`Open invitation · ${fmtD(o.startDate)} – ${fmtD(o.endDate)}`;
+  const r=rs(o.restaurantId)?.name||'Restaurant';
+  return o.endDate&&o.endDate!==o.date?`${r} · ${fmtD(o.date)} – ${fmtD(o.endDate)}`:`${r} · ${fmtD(o.date)}`;
+}
 function readCampaignForm(){
   const v=id=>$('#'+id).value;
   const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?null:v('f_sdate'),start:null,end:null,capacity:null,inviteLimit:null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
-  if(!o.name)return 'Add a campaign name.';
   if(ot==='budget'&&!o.budget)return 'Add the table budget amount, or choose "Nothing specified".';
   if(T==='open'){
     syncSlots();const sl=M.slots.filter(x=>x.start&&x.end).map(x=>({...x})).sort((a,b)=>a.start.localeCompare(b.start));
@@ -1229,6 +1233,7 @@ function readCampaignForm(){
     for(let k=1;k<sl.length;k++)if(sl[k].date===sl[k-1].date&&sl[k].start<sl[k-1].end)return 'Two time slots on the same day overlap. Please adjust them.';
     const last=sl[sl.length-1];Object.assign(o,{slots:sl,date:sl[0].date,endDate:last.date,start:sl[0].start,end:last.end,capacity:sl.reduce((t,x)=>t+x.cap,0)});
   }
+  if(!o.name)o.name=autoCampaignName(o);
   if(!o.everyone&&!o.groupIds.length&&!o.manualIds.length)return 'Choose who to invite: all approved bloggers, or pick individual bloggers.';
   return o;
 }
