@@ -390,6 +390,7 @@ tr.click:hover td{background:#fdf9ef}
 .gs-n{width:34px;height:34px;border-radius:99px;display:grid;place-items:center;font-weight:700;background:#f3eee0;color:var(--ink2);flex:none}
 .gs-row.cur .gs-n{background:var(--gold-d);color:#fff}.gs-row.done .gs-n{background:var(--green-bg);color:var(--green)}
 .gs-t{flex:1;min-width:0}.gs-row.done .gs-t b{text-decoration:line-through;color:var(--mute)}
+.p-note{background:#fff6dc;border:1px solid #efdca3;color:#6b5418;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -1394,7 +1395,16 @@ function submitRegistration(){
 function portalBlogger(){return S.portal.bloggerId?bl(S.portal.bloggerId):null}
 function authBlogger(){
   const P=S.portal;const cc=($('#pv_cc')?.value||'+965').trim(),ph=($('#pv_phone')?.value||'').replace(/\D/g,'');P.phoneDraft=ph;
-  if(P.general){const b=DB.bloggers.find(x=>x.cc===cc&&x.phone===ph);if(!b||!hasAccess(b)){P.err="We couldn't find an active account for this number. Check the number, or ask the marketing team for your link.";render();return null}P.bloggerId=b.id;P.token=b.access.token;return b}
+  P.errKind='';
+  if(P.general){const b=DB.bloggers.find(x=>x.cc===cc&&x.phone===ph);
+    if(!b){P.err="We couldn't find an account for this number. Check the number, or apply to join.";P.errKind='none';render();return null}
+    if(!hasAccess(b)){
+      if(b.status==='Pending'){P.err="Your application is still under review. We'll message you on WhatsApp as soon as it's approved.";P.errKind='info'}
+      else if(b.status==='Rejected'){P.err="Your application wasn't approved. Please contact the marketing team if you think this is a mistake."}
+      else if(b.status==='Suspended'){P.err="This account is suspended. Please contact the marketing team."}
+      else{P.err="Your account isn't active yet. Please contact the marketing team."}
+      render();return null}
+    P.bloggerId=b.id;P.token=b.access.token;return b}
   const b=portalBlogger();
   if((FRESH||ph!=='')&&(cc!==b.cc||ph!==b.phone)){P.err="This number doesn't match the account this link belongs to. Personal links only work for the person they were sent to.";render();return null}
   return b;
@@ -1424,7 +1434,8 @@ function renderPortal(){
     ${tabs?`<div style="margin-top:18px">${tabs}</div>`:''}
     <div style="display:flex;gap:8px;margin-top:20px"><input class="pinp" id="pv_cc" value="+965" style="width:90px"><input class="pinp" id="pv_phone" inputmode="tel" value="${esc(P.phoneDraft||'')}" placeholder="${P.general||FRESH?'Phone number':'Phone number (demo: leave empty)'}"></div>
     ${tab==='pw'?`<input class="pinp" id="pv_pw" type="password" placeholder="Password" style="margin-top:10px">`:''}
-    ${P.err?`<div class="p-err">${esc(P.err)}</div>`:''}
+    ${P.err?`<div class="${P.errKind==='info'?'p-note':'p-err'}">${esc(P.err)}</div>`:''}
+    ${P.errKind==='none'?`<button class="pbtn ghost" style="margin-top:10px" data-action="view" data-v="register">Apply to join</button>`:''}
     ${tab==='pw'?`<button class="pbtn" data-action="pPwLogin">Sign in</button>
     <p class="small" style="text-align:center;margin:12px 0 0;color:#776f65">First time, or forgot your password? <button class="btn ghost sm" style="color:var(--gold-d);font-weight:600" data-action="pTabSet" data-t="code">Get a code</button></p>`:`<button class="pbtn" data-action="pSendOtp">Send code</button>
     ${mode==='password'?`<p class="small" style="text-align:center;margin:12px 0 0;color:#776f65">A code is only needed the first time and to reset your password.</p>`:''}`}
