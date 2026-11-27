@@ -436,6 +436,7 @@ const cleanCountry=v=>{v=(v||'').trim().replace(/\s+/g,' ');if(v.length<2)return
 const NAT_SEED=['Kuwait','Kuwait','Saudi Arabia','Kuwait','Egypt','Kuwait','Lebanon','Kuwait','Jordan','Kuwait','United Arab Emirates','Syria','Kuwait','India','Kuwait','Philippines'];
 const natOpts=sel=>NATIONALITIES.map(n=>`<option ${n===sel?'selected':''}>${n}</option>`).join('');
 const pwHash=x=>btoa(unescape(encodeURIComponent('mbms-demo:'+x)));/* demo only. Production uses real auth (Supabase). */
+const lenient=()=>DB.settings.lenient!==false;/* presentation mode: any phone number and password signs in */
 const signinMode=()=>(DB.settings&&DB.settings.signin)||'both';
 const slotCap=(c,time)=>{const x=(c.slots||[]).find(y=>y.start===time);return (x&&x.cap)||c.dailyCap||null};
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -1103,7 +1104,8 @@ function signinPage(){
   const opts=[['code','📱','Code every time','The blogger enters a one-time code at every sign-in.',['Nothing to remember or share','One paid message per sign-in'],'Highest running cost'],
    ['password','🔑','Password after the first code','A code once, to verify the phone and set a password. Password after that.',['Codes only for first sign-in and resets','Phone is proven once, at the start'],'Lowest running cost'],
    ['both','✨','Both, blogger chooses','The sign-in page offers a Password tab and a Code tab.',['Most flexible for bloggers','Cost drops as more bloggers set a password'],'Middle running cost']];
-  return `<div class="notice info" style="margin-bottom:14px">${ic('info',16)}<div>Choose how bloggers sign in. Their personal link and phone check stay the same. This only decides what happens after the phone is verified. Try each one in the <b>Blogger portal</b>.</div></div>
+  return `<div class="card card-b" style="margin-bottom:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><div class="b" style="font-size:16px">🎬 Presentation mode</div><div class="muted" style="margin-top:4px">When on, the blogger portal accepts any phone number and password, with no errors. If the number is not registered, the newest blogger is used, or a guest blogger is created. Turn it off to show the real checks.</div></div><button class="btn ${lenient()?'pri':''}" data-action="toggleLenient">${lenient()?'✓ On':'Off'}</button></div>
+  <div class="notice info" style="margin-bottom:14px">${ic('info',16)}<div>Choose how bloggers sign in. Their personal link and phone check stay the same. This only decides what happens after the phone is verified. Try each one in the <b>Blogger portal</b>.</div></div>
   <div class="opts">${opts.map(([k,e,t,d,pr,cost])=>`<button class="optcard ${m===k?'on':''}" data-action="setSignin" data-m="${k}"><div class="opt-top"><span class="opt-em">${e}</span><span class="opt-sel">${m===k?'✓ In use':'Use this'}</span></div><div class="opt-t">${t}</div><div class="opt-d">${d}</div><ul>${pr.map(x=>`<li>${x}</li>`).join('')}</ul><div class="opt-cost">${cost}</div></button>`).join('')}</div>
   <div class="card card-b" style="margin-top:16px"><div class="b" style="font-size:16px">💬 Cost comparison</div><div class="muted small" style="margin:4px 0 14px">Change the numbers to match your plan. Add the price of one code to see the cost.</div>
   <div class="row"><div class="field"><label>Active bloggers</label><input class="inp" type="number" min="0" data-calc="bloggers" value="${c.bloggers}"></div><div class="field"><label>Sign-ins per blogger, per month</label><input class="inp" type="number" min="0" data-calc="logins" value="${c.logins}"></div><div class="field"><label>Price of one code (KD, optional)</label><input class="inp" type="number" min="0" step="0.001" data-calc="cost" value="${c.cost}" placeholder="e.g. 0.010"></div></div>
@@ -1393,9 +1395,18 @@ function submitRegistration(){
    BLOGGER PORTAL (mobile-first)
    ============================================================ */
 function portalBlogger(){return S.portal.bloggerId?bl(S.portal.bloggerId):null}
+function demoBlogger(cc,ph){
+  /* presentation mode: find the blogger by phone, else the newest one, else create a guest, and make sure the account is active */
+  let b=ph&&DB.bloggers.find(x=>x.cc===cc&&x.phone===ph);
+  if(!b)b=[...DB.bloggers].sort((x,y)=>y.createdAt-x.createdAt)[0];
+  if(!b){const nm='Guest Blogger';b={id:uid('blg'),accountId:genAccountId(),username:genUsername(nm),name:nm,nationality:'Kuwait',cc,phone:ph||'50000000',status:'Pending',createdAt:Date.now(),notes:'',access:null,lastLogin:null};DB.bloggers.push(b);DB.socials.push({id:uid('soc'),bloggerId:b.id,platform:'Instagram',username:'guest.blogger',url:'https://instagram.com/guest.blogger',primary:true})}
+  if(!hasAccess(b)){const T=toast;toast=()=>{};try{A.approve({id:b.id});A.issueAccess({id:b.id})}finally{toast=T}}
+  return b;
+}
 function authBlogger(){
   const P=S.portal;const cc=($('#pv_cc')?.value||'+965').trim(),ph=($('#pv_phone')?.value||'').replace(/\D/g,'');P.phoneDraft=ph;
   P.errKind='';
+  if(lenient()){const b=demoBlogger(cc,ph);P.bloggerId=b.id;P.token=b.access.token;return b}
   if(P.general){const b=DB.bloggers.find(x=>x.cc===cc&&x.phone===ph);
     if(!b){P.err="We couldn't find an account for this number. Check the number, or apply to join.";P.errKind='none';render();return null}
     if(!hasAccess(b)){
@@ -1709,6 +1720,7 @@ const A={
  pOpenLink:()=>{const v=$('#pl_link').value.trim();
    if(!v&&!FRESH){const d0=DB.bloggers.find(x=>x.access&&!x.access.revoked&&x.status==='Approved');if(d0){S.portal={step:'phone',bloggerId:d0.id,token:d0.access.token};return render()}S.portal={step:'link',err:'No blogger has a personal link yet. In the admin, approve a blogger and issue their link first.'};return render()}
    const tok=(v.split('/p/')[1]||v).split(/[?#\s]/)[0];
+   if(lenient()&&!DB.bloggers.some(x=>x.access&&x.access.token===tok)){const d1=demoBlogger('+965','');S.portal={step:'phone',bloggerId:d1.id,token:d1.access.token};return render()}
    const b=DB.bloggers.find(x=>x.access&&x.access.token===tok);
    if(!tok||!b){S.portal={step:'link',prefill:v,err:"This link isn't valid. Please use the personal link we sent you on WhatsApp."};return render()}
    if(b.status==='Suspended'){S.portal={step:'link',prefill:v,err:'This account is suspended. Please contact the marketing team.'};return render()}
@@ -1725,6 +1737,7 @@ const A={
    DB.settings.otpSent=(DB.settings.otpSent||0)+1;
    S.portal.otp=String(100000+Math.floor(Math.random()*900000));S.portal.tries=0;S.portal.step='otp';S.portal.err='';S.portal.phoneShown=`${b.cc} •••• ${b.phone.slice(-2)}`;save();render();setTimeout(()=>$('#po_code')?.focus(),30)},
  pPwLogin:()=>{const b=authBlogger();if(!b)return;const P=S.portal;
+   if(lenient()){b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};return render()}
    if(!b.pw){P.err="You don't have a password yet. We'll send a code to confirm your number, then you create one.";P.tab='code';return render()}
    const pw=$('#pv_pw').value;
    if(pwHash(pw)!==b.pw){P.pwTries=(P.pwTries||0)+1;if(P.pwTries>=5){P.tab='code';P.pwTries=0;P.err='Too many wrong passwords. Please sign in with a code instead.';return render()}P.err=`Wrong password. ${5-P.pwTries} attempts left.`;return render()}
@@ -1734,10 +1747,11 @@ const A={
    if(a!==c){S.portal.err="The two passwords don't match.";return render()}
    b.pw=pwHash(a);b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render();toast('Password saved. Next time you can sign in without a code.')},
  pSkipPw:()=>{const b=portalBlogger();b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
+ toggleLenient:()=>{DB.settings.lenient=!lenient();save();render();toast(lenient()?'Presentation mode on: any sign-in works':'Presentation mode off: real sign-in checks')},
  setSignin:d=>{DB.settings.signin=d.m;save();render();toast('Blogger sign-in updated')},
  pVerify:()=>{const P=S.portal;const v=$('#po_code').value.trim();
-   if((FRESH||v!=='')&&v!==P.otp){P.tries=(P.tries||0)+1;if(P.tries>=5){S.portal={step:'link',err:'Too many attempts. Please open your link again.'};return render()}P.err=`Incorrect code. ${5-P.tries} attempts left.`;return render()}
-   const b=portalBlogger();if(signinMode()!=='code'&&!b.pw){S.portal={step:'setpw',bloggerId:b.id,token:S.portal.token};return render()}b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
+   if(!lenient()&&(FRESH||v!=='')&&v!==P.otp){P.tries=(P.tries||0)+1;if(P.tries>=5){S.portal={step:'link',err:'Too many attempts. Please open your link again.'};return render()}P.err=`Incorrect code. ${5-P.tries} attempts left.`;return render()}
+   const b=portalBlogger();if(!lenient()&&signinMode()!=='code'&&!b.pw){S.portal={step:'setpw',bloggerId:b.id,token:S.portal.token};return render()}b.lastLogin=Date.now();save();S.portal={step:'app',bloggerId:b.id,tab:'inv'};render()},
  pTab:d=>{S.portal.tab=d.t;S.portal.openC=null;render();window.scrollTo(0,0)},
  pReserve:d=>pReserveSheet(d.id),
  pOpenChoose:d=>{S.portal.openC=d.id;render();window.scrollTo(0,0)},
