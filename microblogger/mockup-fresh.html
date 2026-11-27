@@ -538,7 +538,7 @@ function offerLines(c){
   else if(c.guests===2)o.push('You + 2 guests');
   const ot=offerType(c);
   if(ot==='budget'&&c.budget)o.push(`Table budget of up to ${c.budget} KD`);
-  if(ot==='menu'&&c.setMenu)o.push(`Set menu: ${c.setMenu}`);
+  if(ot==='menu')o.push(c.setMenu?`Set menu: ${c.setMenu}`:'Set menu');
   return o;
 }
 function offerChips(c,cls='chip'){return offerLines(c).map(l=>`<span class="${cls}">${esc(l)}</span>`).join('')}
@@ -963,7 +963,7 @@ function pgCampaigns(){
   return `<div class="tabs">${F.map(f=>`<button class="${S.cfilter===f?'on':''}" data-action="cfilter" data-f="${f}">${f} <span class="muted small">${f==='All'?DB.campaigns.length:DB.campaigns.filter(c=>cStatus(c)===f).length}</span></button>`).join('')}</div>
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Campaign</th><th>Visit date / period</th><th>Time</th><th>Target</th><th>Invited</th><th style="min-width:150px">Booked</th><th>Status</th></tr></thead><tbody>
   ${list.map(c=>{return `<tr class="click" data-action="openCampaign" data-id="${c.id}">
-   <td><div class="who"><img class="thumb" src="${cThumb(c)}" alt=""><div><div class="n">${esc(c.name)}${isOpen(c)?' <span class="chip" style="background:var(--gold-bg);color:var(--gold-dd)">Open invitation</span>':''}</div><div class="muted small">${esc(cRestName(c))}${offerLines(c).length?' · '+esc(offerLines(c).filter(l=>!l.startsWith('Set menu')&&!l.startsWith('Choose from')&&!l.startsWith('Up to')).concat(c.setMenu?['Set menu']:[]).join(' · ')):''}</div></div></div></td>
+   <td><div class="who"><img class="thumb" src="${cThumb(c)}" alt=""><div><div class="n">${esc(c.name)}${isOpen(c)?' <span class="chip" style="background:var(--gold-bg);color:var(--gold-dd)">Open invitation</span>':''}</div><div class="muted small">${esc(cRestName(c))}${offerLines(c).length?' · '+esc(offerLines(c).filter(l=>!l.startsWith('Set menu')&&!l.startsWith('Choose from')&&!l.startsWith('Up to')).concat(offerType(c)==='menu'?['Set menu']:[]).join(' · ')):''}</div></div></div></td>
    <td style="white-space:nowrap">${cDateLabel(c)}</td><td style="white-space:nowrap">${cTimeLabel(c)}</td>
    <td>${c.everyone?'<span class="chip">All approved bloggers</span>':''}${c.groupIds.map(g=>`<span class="chip">${esc(DB.groups.find(x=>x.id===g)?.name||'Deleted group')}</span>`).join('')}${c.manualIds.length?`<span class="chip">+${c.manualIds.length} individual</span>`:''}</td>
    <td>${invitesOf(c.id).length}</td>
@@ -1032,7 +1032,7 @@ function pgCampaign(c){
     <dt>Individuals</dt><dd>${c.manualIds.map(id=>esc(bl(id)?.name)).join(', ')||'—'}</dd>
     <dt>Audience</dt><dd>${aud.length} approved · ${aud.filter(hasAccess).length} with active link</dd>
     <dt>Guests</dt><dd>${c.guests===''||c.guests==null?'—':c.guests===0?'Just the blogger':'+'+c.guests}</dd>
-    <dt>Provided</dt><dd>${offerType(c)==='budget'&&c.budget?'Table budget: '+c.budget+' KD':offerType(c)==='menu'&&c.setMenu?'Set menu: '+esc(c.setMenu):'—'}</dd>
+    <dt>Provided</dt><dd>${offerType(c)==='budget'&&c.budget?'Table budget: '+c.budget+' KD':offerType(c)==='menu'?(c.setMenu?'Set menu: '+esc(c.setMenu):'Set menu'):'—'}</dd>
     <dt>Cancellation</dt><dd>Up to ${c.cancelHours} hours before the visit</dd>
     <dt>Description</dt><dd>${esc(c.description)||'—'}</dd><dt>Instructions</dt><dd>${esc(c.instructions)||'—'}</dd>
     <dt>Launched</dt><dd>${c.launchedAt?fmtTS(c.launchedAt):'Not yet'}</dd></dl></div></div>
@@ -1169,7 +1169,6 @@ function campaignForm(id,preType){
   <div class="field"><label>What we provide</label><select class="inp" id="f_otype" style="width:100%">${[['','Nothing specified'],['budget','Table budget'],['menu','Set menu']].map(([v,l])=>`<option value="${v}" ${offerType(d)===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <div id="otypebox" data-ot="${offerType(d)}">
    <div class="field ot-budget"><label>Table budget (KD)</label><input class="inp" type="number" min="0" step="0.5" id="f_budget" value="${d.budget??''}" placeholder="e.g. 25" style="max-width:220px"><span class="hint">Max bill value for the table</span></div>
-   <div class="field ot-menu"><label>Set menu</label><textarea class="inp" id="f_menu" rows="2" placeholder="e.g. 2 starters, 2 mains and 1 dessert to share">${esc(d.setMenu||'')}</textarea></div>
   </div>
   <div class="sec-t" style="margin-top:6px">Capacity &amp; limits</div>
   <div class="row">  <div class="field only-open"><label>Max visits per blogger per month</label><input class="inp" type="number" min="1" id="f_permonth" value="${d.perMonth||2}"></div>
@@ -1209,10 +1208,9 @@ function updateAudience(){
 }
 function readCampaignForm(){
   const v=id=>$('#'+id).value;
-  const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:ot==='menu'?v('f_menu').trim():'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?null:v('f_sdate'),start:null,end:null,capacity:null,inviteLimit:null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
+  const g=v('f_guests');const T=M.type;const ot=v('f_otype');const o={type:T,guests:g===''?'':+g,offerType:ot,budget:ot==='budget'?(parseFloat(v('f_budget'))||null):null,setMenu:'',name:v('f_name').trim(),restaurantId:T==='single'?v('f_rest'):null,date:T==='single'?null:v('f_sdate'),start:null,end:null,capacity:null,inviteLimit:null,cancelHours:Math.max(0,parseInt(v('f_hours'))||0),everyone:!!M.everyone,groupIds:[...M.groupIds],manualIds:[...M.manualIds],description:v('f_desc').trim(),instructions:v('f_ins').trim(),message:v('f_msg')};
   if(!o.name)return 'Add a campaign name.';
   if(ot==='budget'&&!o.budget)return 'Add the table budget amount, or choose "Nothing specified".';
-  if(ot==='menu'&&!o.setMenu)return 'Describe the set menu, or choose "Nothing specified".';
   if(T==='open'){
     syncSlots();const sl=M.slots.filter(x=>x.start&&x.end).map(x=>({...x})).sort((a,b)=>a.start.localeCompare(b.start));
     if(!sl.length)return 'Add at least one time slot.';
