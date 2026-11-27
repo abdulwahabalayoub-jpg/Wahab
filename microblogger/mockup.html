@@ -422,6 +422,9 @@ const fmtTSd=ts=>new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'s
 const at=(dateStr,time)=>{const d=parseD(dateStr);const[h,m]=time.split(':').map(Number);d.setHours(h,m,0,0);return d};
 const initials=n=>n.split(/\s+/).filter(Boolean).map(w=>w[0]).filter(c=>/[A-Za-z]/.test(c)).slice(0,2).join('').toUpperCase();
 const first=n=>n.trim().split(/\s+/)[0];
+const NATIONALITIES=['Kuwaiti','Saudi','Emirati','Bahraini','Qatari','Omani','Egyptian','Jordanian','Lebanese','Syrian','Iraqi','Palestinian','Yemeni','Sudanese','Moroccan','Tunisian','Algerian','Indian','Pakistani','Bangladeshi','Filipino','Sri Lankan','Turkish','Iranian','British','American','Canadian','French','German','Italian','Other'];
+const NAT_SEED=['Kuwaiti','Kuwaiti','Saudi','Kuwaiti','Egyptian','Kuwaiti','Lebanese','Kuwaiti','Jordanian','Kuwaiti','Emirati','Syrian','Kuwaiti','Indian','Kuwaiti','Filipino'];
+const natOpts=sel=>NATIONALITIES.map(n=>`<option ${n===sel?'selected':''}>${n}</option>`).join('');
 const pwHash=x=>btoa(unescape(encodeURIComponent('mbms-demo:'+x)));/* demo only. Production uses real auth (Supabase). */
 const signinMode=()=>(DB.settings&&DB.settings.signin)||'both';
 const slotCap=(c,time)=>{const x=(c.slots||[]).find(y=>y.start===time);return (x&&x.cap)||c.dailyCap||null};
@@ -552,7 +555,7 @@ function seed(){
   NAMES.forEach(([name,ig],i)=>{
     let status='Approved';if(i>=18)status='Pending';else if(i===17)status='Rejected';else if(i===16)status='Suspended';
     const daysAgo=i>=18?(21-i)+0.3:ri(25,160);
-    const b={id:'blg_'+(i+1),accountId:genAccountId(),username:i===0?'ahmed_4821':genUsername(name),name,cc:'+965',phone:String([5,6,9][i%3])+String(ri(1000000,9999999)),status,createdAt:Date.now()-daysAgo*864e5,notes:'',access:null,lastLogin:null};
+    const b={id:'blg_'+(i+1),accountId:genAccountId(),username:i===0?'ahmed_4821':genUsername(name),name,nationality:NAT_SEED[i%NAT_SEED.length],cc:'+965',phone:String([5,6,9][i%3])+String(ri(1000000,9999999)),status,createdAt:Date.now()-daysAgo*864e5,notes:'',access:null,lastLogin:null};
     if(i<=12||i===16){b.access={token:mkToken(),issuedAt:Date.now()-ri(10,20)*864e5,revoked:i===16,revokedAt:i===16?Date.now()-3*864e5:null}}
     if(i<=12) b.lastLogin=Date.now()-ri(1,9)*864e5;
     DB.bloggers.push(b);
@@ -743,16 +746,16 @@ function filteredBloggers(){
     if(S.baccess==='Active'&&!hasAccess(b))return false;
     if(S.bgroup!=='All'&&!DB.memberships.some(m=>m.groupId===S.bgroup&&m.bloggerId===b.id))return false;
     if(!q)return true;
-    const hay=[b.name,b.username,b.accountId,b.cc+b.phone,b.phone,...socialsOf(b.id).map(s=>s.username)].join(' ').toLowerCase();
+    const hay=[b.name,b.nationality||'',b.username,b.accountId,b.cc+b.phone,b.phone,...socialsOf(b.id).map(s=>s.username)].join(' ').toLowerCase();
     return hay.includes(q);
   }).sort((a,b)=>b.createdAt-a.createdAt);
 }
 function bloggersTable(){
   const list=filteredBloggers();
-  return `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>System username</th><th>Phone</th><th>Instagram</th><th>Other platforms</th><th>Registered</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>
+  return `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>System username</th><th>Phone</th><th>Nationality</th><th>Instagram</th><th>Other platforms</th><th>Registered</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>
   ${list.map(b=>{const ig=igOf(b);const other=socialsOf(b.id).filter(s=>s.platform!=='Instagram');return `<tr class="click" data-action="openBlogger" data-id="${b.id}">
   <td><div class="who"><div class="avatar">${initials(b.name)}</div><div><div class="n">${esc(b.name)}</div><div class="muted small mono">${b.accountId}</div></div></div></td>
-  <td class="mono">${esc(b.username)}</td><td style="white-space:nowrap">${esc(b.cc)} ${esc(b.phone)}</td><td>@${esc(ig?.username)}</td>
+  <td class="mono">${esc(b.username)}</td><td style="white-space:nowrap">${esc(b.cc)} ${esc(b.phone)}</td><td>${esc(b.nationality||'—')}</td><td>@${esc(ig?.username)}</td>
   <td>${other.map(s=>`<span class="chip">${esc(s.platform)}</span>`).join('')||'<span class="muted">—</span>'}</td>
   <td style="white-space:nowrap">${fmtTSd(b.createdAt)}</td><td>${pill(b.status)}</td><td>${b.status==='Approved'||b.access?pill(accessLabel(b)):'<span class="muted">—</span>'}</td>
   <td>${b.status==='Pending'?`<div class="btns" style="flex-wrap:nowrap"><button class="btn sm" data-action="approve" data-id="${b.id}">${ic('check',14)} Approve</button><button class="btn sm danger" data-action="reject" data-id="${b.id}">Reject</button></div>`:''}</td></tr>`}).join('')||'<tr><td colspan="9" class="empty">No bloggers match these filters</td></tr>'}
@@ -805,7 +808,7 @@ function pgBlogger(b){
    </div>
    <div class="stack">
     <div class="card"><div class="card-h"><h3>Contact &amp; accounts</h3></div><div class="card-b"><dl class="kv">
-     <dt>Phone</dt><dd>${esc(b.cc)} ${esc(b.phone)}</dd>
+     <dt>Phone</dt><dd>${esc(b.cc)} ${esc(b.phone)}</dd><dt>Nationality</dt><dd>${esc(b.nationality||'Not provided')}</dd>
      ${socials.map(s=>`<dt>${esc(s.platform)}${s.primary?' <span class="chip" style="margin:0">Primary</span>':''}</dt><dd>@${esc(s.username)}<br><a class="small muted" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></dd>`).join('')}
      ${b.notes?`<dt>Notes</dt><dd>${esc(b.notes)}</dd>`:''}</dl></div></div>
     <div class="card"><div class="card-h"><h3>Personal access</h3>${b.status==='Approved'||b.access?pill(accessLabel(b)):''}</div><div class="card-b">
@@ -1213,6 +1216,7 @@ function bloggerForm(id){
   const b=bl(id);M={socials:socialsOf(id).map(s=>({...s}))};
   openModal({title:'Edit blogger',wide:true,body:`<div class="row"><div class="field"><label>Full name</label><input class="inp" id="e_name" value="${esc(b.name)}"></div>
   <div class="field" style="flex:.4"><label>Country code</label><input class="inp" id="e_cc" value="${esc(b.cc)}"></div><div class="field"><label>Phone</label><input class="inp" id="e_phone" value="${esc(b.phone)}"></div></div>
+  <div class="field" style="max-width:300px"><label>Nationality</label><select class="inp" id="e_nat" style="width:100%"><option value="">Not provided</option>${natOpts(b.nationality)}</select></div>
   <div class="flabel" style="margin-bottom:8px">Social media accounts</div><div id="e_socials">${socialRows()}</div>
   <button class="btn sm" data-action="addSocialRow">${ic('plus',14)} Add platform</button>
   <div class="field" style="margin-top:14px"><label>Internal notes</label><textarea class="inp" id="e_notes">${esc(b.notes)}</textarea></div>
@@ -1322,6 +1326,7 @@ function renderRegister(){
      <div class="p-sec" style="padding:18px 0 8px">About you</div>
      <div class="field"><label>Full name</label><input class="inp" id="rg_name" autocomplete="name" placeholder="Your full name"></div>
      <div class="field"><label>Phone number (WhatsApp)</label><div style="display:flex;gap:8px"><select class="inp" id="rg_cc" style="width:96px;flex:none">${['+965','+966','+971','+973','+974','+968','+962','+961','+20','+44','+1'].map(c=>`<option>${c}</option>`).join('')}</select><input class="inp" id="rg_phone" inputmode="tel" placeholder="5000 0000"></div></div>
+     <div class="field"><label>Nationality</label><select class="inp" id="rg_nat" style="width:100%"><option value="">Select your nationality</option>${NATIONALITIES.map(n=>`<option>${n}</option>`).join('')}</select></div>
      <div class="p-sec" style="padding:10px 0 8px">Instagram</div>
      <div class="field"><label>Instagram username</label><input class="inp" id="rg_ig" placeholder="@yourname"></div>
      <div class="field"><label>Instagram profile URL <span class="muted" style="font-weight:400">(optional)</span></label><input class="inp" id="rg_igurl" placeholder="https://instagram.com/yourname"></div>
@@ -1349,11 +1354,13 @@ function submitRegistration(){
   const err=m=>{$('#rg_err').innerHTML=`<div class="p-err">${esc(m)}</div>`;$('#rg_err').scrollIntoView({block:'center',behavior:'smooth'})};
   if(!name)return err('Please enter your name.');
   if(phone.length<7)return err('Please enter a valid phone number.');
+  const nat=$('#rg_nat').value;
+  if(!nat)return err('Please select your nationality.');
   if(!ig)return err('Please add your Instagram username.');
   const igu=igurl?(/^https?:\/\//i.test(igurl)?igurl:'https://'+igurl.replace(/^\/+/,'')):'https://instagram.com/'+ig;
   if(DB.bloggers.some(b=>b.cc===cc&&b.phone===phone))return err('An application with this phone number already exists. Each person can have one account.');
   const extras=S.reg.extra.filter(p=>p.username.trim()||p.url.trim());
-  const b={id:uid('blg'),accountId:genAccountId(),username:genUsername(name),name,cc,phone,status:'Pending',createdAt:Date.now(),notes:'',access:null,lastLogin:null};
+  const b={id:uid('blg'),accountId:genAccountId(),username:genUsername(name),name,nationality:nat,cc,phone,status:'Pending',createdAt:Date.now(),notes:'',access:null,lastLogin:null};
   DB.bloggers.push(b);
   DB.socials.push({id:uid('soc'),bloggerId:b.id,platform:'Instagram',username:ig,url:igu,primary:true});
   extras.forEach(p=>DB.socials.push({id:uid('soc'),bloggerId:b.id,platform:p.platform,username:p.username.trim().replace(/^@/,''),url:p.url.trim()}));
@@ -1449,7 +1456,7 @@ function portalApp(){
   }else{
     body=`<div class="p-pad"><div class="p-hello">My account</div>
     <div class="bk" style="margin:18px 0 0;display:block"><dl class="kv" style="grid-template-columns:110px 1fr">
-    <dt>Name</dt><dd>${esc(b.name)}</dd><dt>Phone</dt><dd>${esc(b.cc)} ${esc(b.phone)}</dd><dt>Username</dt><dd class="mono">${esc(b.username)}</dd><dt>Account ID</dt><dd class="mono">${b.accountId}</dd>
+    <dt>Name</dt><dd>${esc(b.name)}</dd><dt>Phone</dt><dd>${esc(b.cc)} ${esc(b.phone)}</dd><dt>Nationality</dt><dd>${esc(b.nationality||'Not provided')}</dd><dt>Username</dt><dd class="mono">${esc(b.username)}</dd><dt>Account ID</dt><dd class="mono">${b.accountId}</dd>
     ${socialsOf(b.id).map(s=>`<dt>${esc(s.platform)}</dt><dd>@${esc(s.username)}</dd>`).join('')}</dl></div>
     <p class="muted small" style="margin:14px 4px">To update your details, message the marketing team. Your personal link is tied to your registered number, so it won't work for anyone else.</p>
     <button class="pbtn ghost" data-action="pLogout">${ic('logout',16)} Log out</button></div>`;
@@ -1579,7 +1586,7 @@ const A={
  saveBlogger:d=>{syncSocialInputs();const b=bl(d.id);const name=$('#e_name').value.trim(),cc=$('#e_cc').value.trim(),phone=$('#e_phone').value.replace(/\D/g,'');
    if(!name||phone.length<7)return toast('Name and a valid phone are required');
    if(DB.bloggers.some(x=>x.id!==b.id&&x.cc===cc&&x.phone===phone))return toast('Another account already uses this phone number');
-   b.name=name;b.cc=cc;b.phone=phone;b.notes=$('#e_notes').value.trim();
+   b.name=name;b.cc=cc;b.phone=phone;b.nationality=$('#e_nat').value;b.notes=$('#e_notes').value.trim();
    DB.socials=DB.socials.filter(s=>s.bloggerId!==b.id).concat(M.socials.filter(s=>s.primary||s.username||s.url).map(s=>({...s,bloggerId:b.id})));
    save();closeModal();render();toast('Blogger updated')},
  addToGroupSel:d=>{const g=$('#addGroupSel').value;if(!g)return;DB.memberships.push({groupId:g,bloggerId:d.id});save();render();toast('Added to group')},
