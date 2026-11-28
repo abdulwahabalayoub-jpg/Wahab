@@ -1,0 +1,77 @@
+<div class="top"><div><div class="muted" style="font-size:10px;letter-spacing:.13em;font-weight:800">MARKETING INTELLIGENCE</div><div class="title">Portfolio Overview</div><div class="muted">A consolidated view across all brands.</div></div><span class="demo">SYNTHETIC DEMO · NOT REAL RESULTS</span><span class="pill">Reporting currency: USD ($)</span></div>
+<div class="globalbar" id="globalBar"><label class="ctl">Brand<select id="gBrand"></select></label><label class="ctl">Reporting period<select id="gPeriod"></select></label><span class="gb-note" id="gbNote">Compared with the previous month · synthetic data, Mar–Aug 2026</span></div>
+<div id="pageView"></div>
+<div class="filters" id="postFilters"><select id="type"></select><select id="pillar"></select><select id="paid"><option value="All">All distribution</option><option value="Organic only">Organic only</option><option value="Organic + Paid">Organic + Paid (boosted)</option><option value="Paid only">Paid only (ads not on profile)</option></select><select id="sort"><option value="reach">Sort: Reported reach (organic + paid)</option><option value="paid">Sort: Paid share</option><option value="watch">Sort: Watch time</option><option value="organic">Sort: Organic reach</option><option value="grade">Sort: Post grade</option><option value="date">Sort: Newest first</option></select><input id="search" placeholder="Search posts..."></div>
+<div class="tabs" id="contentTabs"><button class="tab active" id="listTab">All posts</button><button class="tab" id="detailTab" disabled>Post diagnosis</button><button class="tab" id="gradeTab">Targets &amp; Grading</button></div>
+<div id="listView" class="card tablewrap"><div class="grade-help" id="postCount" style="margin-bottom:8px"></div><table><thead><tr><th>Post</th><th>Date</th><th>Format</th><th>Organic reach</th><th>Paid reach</th><th>Distribution split</th><th>Paid share*</th><th>Avg watch</th><th>Completion</th><th>Ad spend</th><th>Post grade</th></tr></thead><tbody id="rows"></tbody></table><p class="note" style="margin:10px 0 0">*Paid share = paid reach ÷ (organic reach + paid reach) as reported. The same person can be reached both ways, so this is a distribution split, not a share of unique people. Post grades use the saved organic <b>post formula</b> in effect for the post's month.</p></div>
+<div id="detailView" class="hidden"></div>
+<div id="moduleView" class="hidden"></div>
+<div id="gradeView" class="hidden">
+ <div class="card">
+  <div class="detailhead"><div><span class="pill">PERFORMANCE EVALUATION</span><h2 style="margin:8px 0 4px">Targets &amp; Grading</h2><div class="muted">Evaluate organic content and paid advertising separately. Combine them only at the final overall-grade stage.</div></div><span class="demo">CONFIGURABLE DEMO · SYNTHETIC DATA</span></div>
+ </div>
+ <div class="card" style="background:#f8f6fc;border-color:#ded6f0">
+  <b style="display:block;margin-bottom:5px">Why are these separate?</b>
+  <div class="grade-help" style="font-size:13px">Organic content measures how the content performs without paid distribution. Paid advertising measures how efficiently the budget delivers the campaign objective. Organic content gets its own quality grade. Paid campaigns are graded by their chosen objective: Sales, Engagement or Traffic. We do not add a generic paid-engagement score to every campaign. Ad spend is context, not a score to reward for being high.</div>
+ </div>
+ <div class="card">
+  <div class="filters"><label class="ctl">Formula being edited<select id="gradeScope"><option value="account">Account formula</option><option value="post">Post formula</option></select></label><label class="ctl">Grading profile<select id="gradeProfile"><option value="lenient">Lenient</option><option value="standard" selected>Standard (recommended)</option><option value="strict">Strict / ruthless</option><option value="custom">Custom</option></select></label><label class="ctl">Starting point<select id="gradePreset"><option value="custom">Choose a starting point</option><option value="awareness">Organic awareness</option><option value="engagement">Organic engagement</option><option value="video">Organic video</option><option value="paid">Paid advertising</option></select></label><label class="ctl">When weights change<select id="weightMode"><option value="auto">Rebalance the others automatically</option><option value="manual">I'll balance them myself</option></select></label><label class="ctl">Show grades using<select id="gradeBasis"><option value="draft">My current settings (live preview)</option><option value="locked">The saved version in effect</option></select></label></div>
+  <div class="split">
+   <div class="subgrade">
+    <div class="detailhead"><div><span class="grade-badge">SCORECARD 1</span><h3 style="margin:8px 0 2px">Organic content</h3><div class="grade-help" id="organicScopeHelp">Content response and non-paid distribution</div></div><div class="grade-score" id="organicGrade">—</div></div>
+    <div id="organicMetricList" style="margin-top:12px"></div>
+    <div class="detailhead" style="margin-top:12px"><b>Organic metric weights</b><b id="organicWeightTotal">100%</b></div><div class="grade-bar"><i id="organicWeightBar" style="width:100%"></i></div>
+   </div>
+   <div class="subgrade">
+    <div class="detailhead"><div><span class="grade-badge">SCORECARD 2</span><h3 style="margin:8px 0 2px">Paid campaign performance</h3><div class="grade-help">Choose the campaign objective. Only relevant metrics appear.</div></div><div class="grade-score" id="paidGrade">—</div></div><label class="grade-help" for="campaignObjective">Campaign objective (formula being edited)</label><select id="campaignObjective" style="display:block;width:100%;margin:6px 0 12px"><option value="sales">Sales</option><option value="engagement">Engagement</option><option value="traffic">Traffic</option></select>
+    <div id="paidMetricList" style="margin-top:12px"></div>
+    <div class="detailhead" style="margin-top:12px"><b>Paid metric weights</b><b id="paidWeightTotal">100%</b></div><div class="grade-bar"><i id="paidWeightBar" style="width:100%"></i></div>
+    <div class="grade-help" style="margin-top:8px">Volume targets (purchases, revenue, landing page views, link clicks, engagement actions) are set per campaign, so a small budget is not judged against a large one. The target here is the default for campaigns without their own.</div>
+   </div>
+  </div>
+  <div class="grade-help" style="margin-top:10px">Each scorecard has its own 100% weighting. The two sets of weights are never mixed together. Other dashboard pages always use the <b>saved</b> version in effect for each month. Save your changes to apply them there.</div>
+ </div>
+ <div class="card">
+  <div class="detailhead"><h3 style="margin:0">Grade scale</h3><span class="grade-help" id="scaleHint">Edit any cutoff to switch to a Custom profile.</span></div>
+  <div class="scale" id="gradeScale"></div>
+  <div class="grade-help" style="margin-top:8px">Each metric scores its <b>target achievement %</b>. Higher-is-better: actual ÷ target. Lower-is-better (costs, skip rate): target ÷ actual. Over-achievement on one metric can offset a shortfall on another, up to the cap. Final scores are shown out of 100. Unavailable metrics are left out and the remaining weights are rescaled. They are never scored as zero. Below 60% data coverage the scorecard shows "Insufficient data" instead of a grade.</div>
+ </div>
+ <div class="grade-layout">
+  <div class="card">
+   <h3 style="margin-top:0">Overall grade mix</h3>
+   <div class="grade-help">Choose how much the organic and paid scorecards contribute to the final grade. This does not change either scorecard's own grade.</div>
+   <div class="detailhead" style="margin-top:16px"><b>Organic contribution</b><b><span id="organicMixLabel">70</span>%</b></div><input id="organicMix" type="range" min="0" max="100" step="5" value="70" style="width:100%">
+   <div class="detailhead"><b>Paid contribution</b><b><span id="paidMixLabel">30</span>%</b></div>
+   <label class="grade-help" for="paidAgg" style="display:block;margin-top:14px">Paid account grade is built from campaign grades using</label><select id="paidAgg" style="display:block;width:100%;margin-top:6px"><option value="equal">Equal weight per campaign (budget-neutral)</option><option value="spend">Weight by spend</option></select>
+   <div class="grade-help" style="margin-top:12px">If a scorecard has no applicable or reliable data, it is marked unavailable. The overall grade is recalculated from the scorecards with valid data and clearly flags the missing component.</div>
+  </div>
+  <div class="card" id="previewCard">
+   <h3 style="margin-top:0">Grade preview · <span id="previewBrand"></span></h3><div class="grade-help" id="previewBasis"></div>
+   <div id="previewBody">
+   <div style="display:flex;align-items:center;gap:15px;margin:18px 0"><div class="grade-score" id="gradeLetter">—</div><div style="flex:1"><b id="gradePoints">—</b><div class="grade-bar" style="margin-top:7px"><i id="gradePreviewBar" style="width:0%"></i></div><div class="grade-help" id="gradeProfileText">Standard target thresholds</div></div></div>
+   <div class="detailhead"><b>Overall grade</b><b id="overallGrade">—</b></div>
+   <div class="mini-grades" id="previewParts"></div>
+   <div class="grade-help" id="overallNote" style="margin-top:8px"></div>
+   </div>
+  </div>
+ </div>
+ <div id="gradeBrandCards">
+ <div class="card"><div class="detailhead"><h3 style="margin:0" id="organicBreakdownTitle">Organic scorecard</h3><span class="grade-badge" id="organicCoverage"></span></div><p class="explain" id="organicExplain"></p><div class="tablewrap" id="organicBreakdown"></div></div>
+ <div class="card"><div class="detailhead"><h3 style="margin:0">Paid campaigns · <span id="paidBrandLabel"></span></h3><span class="grade-badge" id="paidSummary"></span></div><p class="grade-help">Each campaign is graded against its own objective's formula and its own targets. Click a campaign to see how its grade was worked out and to edit its targets.</p><div class="tablewrap" id="campaignTable"></div><p class="explain" id="paidExplain"></p></div>
+ <div class="card">
+  <h3 style="margin-top:0">Advertising context (not part of the grade)</h3>
+  <div class="grid" id="spendContext"></div>
+  <div class="metric" style="margin-top:10px"><small>Ad spend</small><b style="font-size:15px">Track against budget in USD ($)</b><div class="grade-help">All advertising spend, budgets and monetary campaign results are displayed in USD ($). Spending more is not better. Show actual spend, planned budget and remaining budget beside campaign results. A larger budget or higher spend does not automatically mean better performance. Campaign grades are based on target achievement percentages, not the absolute budget.</div></div>
+ </div>
+ </div>
+ <div class="card"><div class="detailhead"><h3 style="margin:0">Portfolio grades · <span id="portfolioPeriod"></span></h3><span class="grade-help">Click a brand to open its scorecards</span></div><div class="tablewrap" id="portfolioGrades"></div><p class="grade-help">Brands are compared by target achievement, not size. A brand with a small budget or audience can still earn an A.</p></div>
+ <div class="card">
+  <h3 style="margin-top:0">Formula settings</h3><label class="grade-help" for="formulaName">Formula name</label><input id="formulaName" value="My performance formula" style="width:100%;margin:6px 0 12px"><label class="grade-help"><input type="checkbox" id="enableRecommendations" checked> Show recommended metrics and targets</label><div class="grade-help" style="margin-top:10px">Users can save multiple formulas and apply them to selected brands, accounts, content formats or campaigns.</div>
+  <label class="grade-help" for="effectiveFrom" style="display:block;margin-top:12px">When saving, apply this version from</label><select id="effectiveFrom" style="display:block;width:100%;margin-top:6px"></select>
+  <div class="grade-actions" style="margin-top:14px"><button id="saveFormula">Save formula</button><button id="loadFormula">Load saved formula</button><button id="resetFormula">Reset to demo default</button></div><div class="grade-help" id="saveStatus" style="margin-top:8px">Demo settings are saved in this browser only.</div>
+  <h4 style="margin:18px 0 6px">Formula history</h4><div class="grade-help" style="margin-bottom:8px">Every saved version is kept. Each month is graded with the version in effect for that month, so later edits never rewrite past grades.</div>
+  <div class="tablewrap" id="historyTable"></div>
+ </div>
+ <div class="card"><h3 style="margin-top:0">Rules that keep grades fair</h3><div class="grid"><div class="metric"><small>Organic</small><b style="font-size:14px">Shares, saves, organic reach, organic engagement</b></div><div class="metric"><small>Paid</small><b style="font-size:14px">Campaign-specific: Sales, Engagement or Traffic</b></div><div class="metric"><small>Context only</small><b style="font-size:14px">Ad spend and budget</b></div><div class="metric"><small>Unavailable data</small><b style="font-size:14px">Excluded, never scored as zero</b></div></div><p class="grade-help">ROAS and cost per result require reliable conversion tracking. Paid campaigns use objective-specific KPIs and target-achievement percentages. Profile visit and follow conversion rates belong in the organic account/content scorecard when attribution data is available. Video watch time, retention and skip rate are organic metrics in this grading setup. Account-only metrics such as follower growth are not offered in a post formula.</p></div>
+</div>
+<p class="note" id="integrityNote"><b>Data integrity:</b> All brands' results here are fictional examples generated for the demo. In production, the system should join the Instagram media ID to the corresponding boosted/promoted ad records. Reach and impressions are different metrics; paid impressions must not be mislabeled as paid reach. If Meta does not provide a comparable post-level paid reach field for a particular format or ad setup, show “Unavailable” rather than estimate it. Organic and paid unique reach may overlap and should not be blindly added to claim deduplicated total reach.</p>

@@ -1,11 +1,40 @@
 # Social Media Intelligence Dashboard V2 — prototype
 
-Open `index.html` in a browser. It is a single file with no build step. **All data is synthetic.** The live Meta integration starts later.
+Open `index.html` in a browser. It is a single self-contained file. **All data is synthetic.** The live Meta integration starts later.
 
-- `index.html`: the current working prototype. It is the continuation of `reference/Social_Intelligence_V2_With_Targets_Grading.html`.
+- `index.html`: the built prototype (the continuation of `reference/Social_Intelligence_V2_With_Targets_Grading.html`). Don't edit it by hand.
+- `src/`: the source. `styles.css`, `sidebar.html`, `main.html` and `app.js` (core helpers, charts, grading engine), `pages.js` (dashboard pages), `shell.js` (Content Analysis, Targets & Grading, navigation).
+- `tools/build.py`: assembles `src/` into `index.html` and runs the data generator. Run `python3 tools/build.py` after any change.
 - `reference/`: the original handover pack (source PDF, blueprint, earlier prototypes, handover prompt).
 - `data/`: the 6-month synthetic CSVs.
-- `tools/generate_demo_data.py`: regenerates the demo data block inside `index.html`.
+- `tools/generate_demo_data.py`: generates six months of synthetic data (Mar–Aug 2026) into `index.html`.
+
+## Changelog — v2.2 (28 Nov 2026)
+
+**Six months of synthetic data, Mar–Aug 2026, for all 10 brands**
+- 1,224 posts (Reels, carousels, images), each with a content pillar, organic vs ad-driven actions, profile visits, follows and watch metrics.
+- 134 campaigns (Sales, Engagement, Traffic) with budgets. Monthly spend matches the CSV, relabelled USD.
+- Account follower history, new follows, unfollows and profile visits.
+- Aggregated audience data (gender, age, countries, Kuwait areas, activity heatmap).
+- Three fictional competitors per brand, with public metrics only.
+- The story in the data comes from the CSV: paid reach rises month by month while organic reach falls in August. Sutis's sales campaigns have no conversion tracking until June.
+
+**Global controls:** a brand picker and a reporting-period picker on every page. Every page compares with the previous month.
+
+**All sidebar pages now have content**
+- Portfolio Overview: KPIs with sparklines, brand comparison, management attention flags, grade ranking, reach and posts charts.
+- Brand Overview: KPIs, reach by month, grades over time, top and weakest posts, takeaways, flags.
+- Organic Performance: KPIs, trends, format and pillar breakdowns, top posts.
+- Paid Performance: KPIs, spend vs budget, CPM trend, campaign table linking to grade breakdowns.
+- Audience Analysis: growth, follows vs unfollows, demographics, areas, activity heatmap, personas labelled as hypotheses.
+- Content & Campaigns: monthly calendar, planned vs published, pillar mix, campaigns.
+- Competitor Intelligence: public snapshot, follower trend, Ad Library activity, themes.
+- AI Intelligence: rule-generated findings with evidence, period, confidence, assumptions and next step. Lifecycle: Proposed → Accepted / Rejected → Completed → Evaluated. Plus a SWOT.
+- Management & Reports: budget pacing heatmap, objectives with status, tasks (accepted recommendations appear here), print to PDF.
+
+**Grading across months:** each month is graded with the formula version in effect for it. Saving a version lets you choose where it starts: next month, this month, or all months.
+
+Charts are hand-built SVG. They have hover tooltips, a highlighted selected month and a "Show data table" option.
 
 ## Changelog — v2.1 (28 Nov 2026)
 
@@ -46,5 +75,7 @@ Open `index.html` in a browser. It is a single file with no build step. **All da
 | Profile visit rate | Only for posts with no paid distribution (otherwise the denominator is incompatible) |
 | Paid formula additions | Revenue (Sales) and CPC (Traffic) added. Paid reach set to optional (0%) for Engagement. |
 
-## Still placeholders
-Portfolio Overview, Brand Overview, Organic, Paid, Audience, Content & Campaigns, Competitors, AI Intelligence, Management. Also still to do: the Arabic/RTL switch and the global brand/date pickers. Earlier prototypes in `reference/` have versions of these to port.
+## Still to do
+- Arabic / RTL language switch (earlier prototypes in `reference/` have one to port).
+- Settings & Data area from the blueprint (organizations, integrations, permissions, metric dictionary, audit log).
+- AI findings are rule-based in the demo. A real model would come with the backend.
