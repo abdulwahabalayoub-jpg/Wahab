@@ -1,0 +1,69 @@
+PROJECT HANDOVER — SOCIAL MEDIA INTELLIGENCE DASHBOARD V2
+
+I am continuing an existing project from another ChatGPT conversation. I need you to continue the SAME project, not reinterpret it, redesign it from scratch, simplify it, or silently change decisions.
+
+FIRST: inspect every attached project file, especially:
+1. Social Media Dashboard.pdf — original source/idea.
+2. Social_Media_Intelligence_Dashboard_V2_Blueprint.docx — product requirements and architecture.
+3. Social_Intelligence_V2_With_Targets_Grading.html — latest dashboard prototype. Treat this as the current working prototype and preserve its existing layout, left sidebar, navigation, pages, and current functionality.
+4. The other HTML prototypes and CSV files — earlier iterations and synthetic demo data.
+
+PROJECT PURPOSE
+A responsive web-based Social Media Intelligence Dashboard initially for internal F&B portfolio use, designed so it can later become a commercial multi-tenant SaaS product. It should support desktop, tablet, and mobile; English and Arabic with proper LTR/RTL; marketing management and team access. Initial data focus is Instagram organic performance and Meta paid advertising. Do not assume the portfolio list is final if the source documents conflict; flag discrepancies for confirmation.
+
+NON-NEGOTIABLE CONTINUITY RULES
+- Do not remove the existing left sidebar or other dashboard sections.
+- Do not replace the full dashboard with a standalone feature page.
+- Make changes incrementally to the latest HTML prototype, preserving all existing sections, navigation, styling, and behavior unless I explicitly ask otherwise.
+- Do not silently change metric definitions, product scope, brand names, decisions, or terminology.
+- Before editing, inspect the latest prototype and identify its current structure.
+- After editing, provide the complete updated HTML file and a concise changelog.
+- Clearly distinguish working interactions, illustrative/demo data, and features that still need backend/API integration.
+- Do not claim live data or real calculated grades when the prototype uses synthetic data.
+- Ask one focused clarification only if a decision is genuinely blocking.
+
+POST-LEVEL ANALYSIS REQUIREMENT
+Every individual Instagram post/Reel must be inspectable. Users need to see what happened organically versus what happened through paid promotion, including the contribution of advertising, spend, reach/impressions (correctly distinguished), engagement actions, watch time/retention where available, and warnings. Do not combine organic reach and paid reach into a misleading unique reach total.
+
+GRADING & TARGETS REQUIREMENTS
+A dedicated Targets & Grading area is part of the dashboard. It must coexist with all existing dashboard navigation and pages.
+
+Organic account/content performance is graded separately from paid campaign performance.
+- Organic metrics selected initially: Shares, Saves, Organic reach, Watch time, Follower growth (account-level), Engagement rate, Average retention, Profile visits, Profile Visit Rate, Profile-to-Follow Conversion Rate. Skip rate is an optional video metric.
+- Account-level metrics such as follower growth should not be incorrectly assigned to individual post grades.
+- Users can add/remove metrics using checkboxes.
+- Users can set targets, weights, grading thresholds, and choose Lenient, Standard, Strict, or custom grading profiles.
+- Formula weights should total 100%; allow users to control how changes are handled.
+- Explain every grade and show target achievement percentages, not just a letter grade.
+- Preserve formula/target history so changes do not rewrite historical grades.
+
+Paid campaign grading is objective-specific, not one generic formula:
+1. Sales: ROAS, cost per purchase/result, purchases, revenue, conversion rate (where tracking supports it).
+2. Engagement: cost per engagement and relevant engagement actions.
+3. Traffic: cost per landing page view, landing page views, link clicks, CTR, CPC.
+Users select metrics and weights for each objective. Grade each campaign against its own targets first, then derive a paid account grade from campaign results.
+Do NOT create a separate generic paid-engagement grade for the account.
+Ad spend is tracked separately against budget; spend alone is not a performance grade.
+Paid performance should be percentage-based against targets, so budgets of different sizes can be evaluated fairly. Lower-is-better metrics need inverse scoring logic. Missing/unavailable data must not be treated as zero.
+Overall account grade may combine organic and paid scorecards using user-defined weights, while always keeping the separate grades visible.
+
+Two additional conversion metrics:
+- Profile Visit Rate: profile visits attributed to content / content reach, only when attribution/denominator are compatible.
+- Profile-to-Follow Conversion Rate: new follows / profile visits, only when attribution/denominator are compatible.
+Make both optional and available where data supports them. Do not imply attribution where the platform does not provide it.
+
+CURRENCY
+Use USD ($) for advertising budgets, spend, cost per result and campaign monetary reporting, because Meta/Facebook and TikTok advertising accounts are operated/reported in USD for this project. Preserve source-reported USD amounts; do not convert unnecessarily.
+
+TECHNICAL / DATA INTEGRITY
+- Clearly distinguish reach, impressions, views, and unique reach.
+- Do not blindly add organic and paid reach as if they were deduplicated unique people.
+- API availability varies by media format, metric, API version, and ad setup. Show unavailable/not provided when not exposed.
+- Link promoted organic media to relevant ads carefully.
+- ROAS and conversion metrics require reliable conversion tracking.
+- Do not fabricate data or present synthetic demo figures as actual performance.
+- Competitor analysis should use public information only.
+- AI recommendations must show evidence, period, confidence/assumptions, and actionable next steps.
+
+WHAT I WANT FROM YOU NOW
+Read the attached files fully enough to understand the actual current dashboard and requirements. Confirm the current baseline and list any conflicts or missing decisions you find. Do not start a redesign or remove anything. Then continue from the latest HTML prototype with the smallest necessary changes I request.
