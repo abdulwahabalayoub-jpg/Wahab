@@ -55,7 +55,7 @@ export const Network: React.FC<{ f: number; grow: number; core?: number; brands?
     {BRANDS.map((b, i) => {
       const a = i / 7 * Math.PI * 2 + f * 0.012; const t = pr(brands, i / 9, i / 9 + 0.3, back);
       if (t <= 0) return null;
-      const p: V3 = [Math.cos(a) * 2.05, Math.sin(i * 1.7) * 0.6, Math.sin(a) * 2.05];
+      const p: V3 = [Math.cos(a) * 2.05, Math.sin(i * 1.7) * 0.3 + 0.15, Math.sin(a) * 1.6 - 0.2];
       return (<group key={b} position={p} rotation={[-0.25, -spin - a + Math.PI / 2, 0]}>
         <Card src={logo(b)} w={0.62} r={0.12} scale={t} order={95 + i} />
       </group>);
