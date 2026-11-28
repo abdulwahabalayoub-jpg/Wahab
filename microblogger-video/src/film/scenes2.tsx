@@ -250,8 +250,10 @@ const Final: React.FC<{ reveal: number; f: number }> = ({ reveal, f }) => {
   return (<AbsoluteFill style={{ justifyContent: "center", alignItems: "center", pointerEvents: "none" }}>
     <Img src={staticFile("mnh_mark.png")} style={{ width: 150, opacity: t, transform: `translateY(${(1 - t) * 30}px)`, filter: `drop-shadow(0 0 40px rgba(233,196,106,${0.5 * t}))`, marginBottom: 46 }} />
     <div style={{ fontFamily: "Inter", fontWeight: 600, letterSpacing: "0.38em", fontSize: 30, color: "#E9C46A", opacity: t }}>THE</div>
-    <div style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 118, lineHeight: 1.02, textAlign: "center", marginTop: 14, opacity: s, transform: `scale(${0.94 + 0.06 * s})`, filter: `blur(${(1 - s) * 12}px)`,
-      background: `linear-gradient(100deg, #a67c12 ${sh - 30}%, #fff6d8 ${sh}%, #E9C46A ${sh + 12}%, #a67c12 ${sh + 40}%)`, WebkitBackgroundClip: "text", color: "transparent" }}>Microblogger<br />Dashboard</div>
+    <div style={{ marginTop: 14, opacity: s, transform: `scale(${0.94 + 0.06 * s})`, filter: s < 1 ? `blur(${(1 - s) * 12}px)` : undefined }}>
+      <div style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 118, lineHeight: 1.02, textAlign: "center", padding: "0 10px 12px",
+        backgroundImage: `linear-gradient(100deg, #a67c12 ${sh - 30}%, #fff6d8 ${sh}%, #E9C46A ${sh + 12}%, #a67c12 ${sh + 40}%)`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "transparent" }}>Microblogger<br />Dashboard</div>
+    </div>
     <div style={{ fontFamily: "Inter", fontWeight: 500, fontSize: 32, color: "rgba(255,255,255,.7)", marginTop: 36, opacity: pr(f, 200, 226) }}>MNH Al-Hajery</div>
   </AbsoluteFill>);
 };
